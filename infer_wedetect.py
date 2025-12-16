@@ -56,7 +56,7 @@ def visualize(output_file, image, bboxes, labels):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='YOLO-World Demo')
+    parser = argparse.ArgumentParser(description='Demo')
     parser.add_argument('--config', help='test config file path')
     parser.add_argument('--checkpoint', help='checkpoint file')
     parser.add_argument('--image', help='image path, include image file or dir.')
