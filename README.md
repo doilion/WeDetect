@@ -126,7 +126,7 @@ bash dist_test.sh config/wedetect_base.py /PATH/TO/WEDETECT 8
 cd eval_recall
 torchrun --nproc-per-node=8 --nnodes=1 --node_rank=0 --master_addr="127.0.0.1" --master_port=29500 eval_recall.py --wedetect_uni_checkpoint wedetect_base_uni.pth --dataset coco
 ```
-- Please change the dataset path in Line 1400 of `eval_recall/eval_recall.py`.
+- Please change the dataset path in Line 10 of `eval_recall/eval_recall.py`.
 - Dataset can be `coco`, `lvis`, and `paco`.
 
 ```
