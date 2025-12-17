@@ -56,6 +56,7 @@ mmdet==3.3.0
 mmengine==0.10.7
 ```
 
+- WeDetect-Ref用户无需安装MMCV系列第三方库
 - 请按照下列的指令安装环境
 
 ```
