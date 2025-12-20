@@ -67,6 +67,7 @@ mmengine==0.10.7
 pip install transformers==4.57.1 trl==0.17.0 accelerate==1.10.0 -i https://mirrors.cloud.tencent.com/pypi/simple
 pip install pycocotools terminaltables jsonlines tabulate lvis supervision==0.19.0 webdataset ddd-dataset -i https://mirrors.cloud.tencent.com/pypi/simple
 
+# WeDetect-Ref users do not need to install following packages
 pip install openmim -i https://mirrors.cloud.tencent.com/pypi/simple
 mim install mmcv==2.1.0
 mim install mmdet==3.3.0
@@ -80,12 +81,11 @@ mim install mmdet==3.3.0
 ```
 python3 infer_wedetect.py --config config/wedetect_large.py --checkpoint checkpoints/wedetect_large.pth --image assets/demo.jpeg --text '鞋,床' --threshold 0.3
 ```
+- Note: WeDetect is a Chinese-language model, so please provide class names in Chinese. The model supports detecting multiple categories simultaneously by separating each class name with an English comma. All characters in the command should be in English, including quotation marks (except for the Chinese class names).
+
 <p align="left">
     <img src="./assets/pred_wedetect_large.jpeg" width="800px">
 </p>
-
-- Note: WeDetect is a Chinese-language model, so please provide class names in Chinese. The model supports detecting multiple categories simultaneously by separating each class name with an English comma. All characters in the command should be in English, including quotation marks (except for the Chinese class names).
-
 
 
 #### 📍 WeDetect-Uni
@@ -106,11 +106,13 @@ python infer_wedetect_ref.py --wedetect_ref_checkpoint /PATH/TO/WEDETECT_REF --w
 # output the prediction higher than the threshold
 python infer_wedetect_ref.py --wedetect_ref_checkpoint /PATH/TO/WEDETECT_REF --wedetect_uni_checkpoint /PATH/TO/WEDETECT_UNI --image assets/demo.jpeg --query "a photo of trees and a river" --visualize --score_thre 0.3
 ```
+
+- WeDetect-Ref is a multilingual model. You can use either Chinese or English queries for testing, but only one query can be provided at a time.
+
 <p align="left">
     <img src="./assets/pred_wedetect_ref_4b.png" width="800px">
 </p>
 
-- WeDetect-Ref is a multilingual model. You can use either Chinese or English queries for testing, but only one query can be provided at a time.
 
 
 ### 📏 Evaluation
