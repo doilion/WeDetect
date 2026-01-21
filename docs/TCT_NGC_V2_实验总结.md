@@ -9,9 +9,10 @@
 | # | 实验 | 配置 | Best Epoch | Base mAP | Base mAP (排除负样本) | Novel mAP | 状态 |
 |---|------|------|------------|----------|----------------------|-----------|------|
 | 1 | 基准 (Baseline) | lr=2e-4, epochs=15 | 9 | 25.4% | **32.1%** | 6.8% | ✅ 完成 |
-| 2 | 实验1: 降低学习率 | lr=1e-4, epochs=20 | 9 | 24.5% | 30.7% | **7.2%** | ✅ 完成 |
-| 3 | 实验2: 冻结Backbone | 冻结前两层, lr=2e-4 | - | - | - | - | ⏳ 待运行 |
-| 4 | 实验3: 调整Loss权重 | cls=1.0, bbox=5.0 | - | - | - | - | ⏳ 待运行 |
+| 2 | 实验1: 降低学习率 | lr=1e-4, epochs=20 | 9 | 24.5% | 30.7% | 7.2% | ✅ 完成 |
+| 3 | 实验2: 冻结Backbone | 冻结前两层, lr=2e-4 | 8 | 22.5% | 28.4% | 8.1% | ✅ 完成 |
+| 4 | 实验3: 调整Loss权重 | cls=1.0, bbox=5.0 | 9 | 23.2% | 29.6% | **9.1%** | ✅ 完成 |
+| 5 | 实验4: 组合策略 | 冻结+Loss调整 | 7 | 19.9% | 24.3% | 9.0% | ✅ 完成 |
 
 **运行环境**:
 - **GPU**: NVIDIA RTX 5880 Ada Generation (48GB)
@@ -262,7 +263,7 @@ backbone=dict(
 
 ---
 
-## 实验 3: 冻结 Backbone 前两层 (待运行)
+## 实验 3: 冻结 Backbone 前两层
 
 ### 配置信息
 
@@ -270,7 +271,11 @@ backbone=dict(
 |------|-----|
 | 配置文件 | `config/wedetect_tiny_tct_exp2.py` |
 | 工作目录 | `work_dirs/wedetect_tiny_tct_exp2/` |
-| 状态 | ⏳ 待运行 |
+| Checkpoint | `best_coco_bbox_mAP_epoch_8.pth` |
+| 训练日志 | `20260115_201341/vis_data/*.log` |
+| 总 Epochs | 12 |
+| 最佳 Epoch | 8 |
+| 状态 | ✅ 完成 |
 
 ### 配置变更 (vs 基准)
 
@@ -278,16 +283,86 @@ backbone=dict(
 |------|------|-------|
 | Max Epochs | 15 | **12** |
 | Image Backbone | 不冻结 | **冻结前两层** |
+| Batch Size | 28 | **14** |
 
-### 运行命令
+### 总体结果
 
-```bash
-CUDA_VISIBLE_DEVICES=0 python train.py config/wedetect_tiny_tct_exp2.py
-```
+| 评估集 | mAP | mAP@50 | vs 基准 |
+|--------|-----|--------|---------|
+| **Base** (全部20类) | 22.5% | 34.8% | -2.9% ❌ |
+| **Base** (排除负样本, 15类) | 28.4% | 43.1% | -3.7% ❌ |
+| **Novel** (零样本, 11类) | **8.1%** | 10.7% | +1.3% ✅ |
+
+### Base Per-Class AP (排除负样本，15类)
+
+| 类别 | AP | vs 基准 | 域 |
+|------|-----|---------|-----|
+| Serous effusion-Breast cancer | 65.9% | +10.2% ✅ | 浆膜腔 |
+| dysbacteriosis_herpes_act | 53.2% | -0.6% | 宫颈 |
+| Thyroid gland-Suspicious for Malignancy | 52.7% | -9.4% | 甲状腺 |
+| Thyroid gland-Papillary cancer | 49.5% | -1.1% | 甲状腺 |
+| agc_adenocarcinoma_em | 39.5% | +11.3% ✅ | 宫颈 |
+| ascus | 30.9% | -0.6% | 宫颈 |
+| lsil | 30.5% | +0.7% | 宫颈 |
+| Urine-SHGUC | 27.4% | -6.0% | 尿液 |
+| vaginalis | 20.1% | -1.9% | 宫颈 |
+| asch | 18.7% | -1.0% | 宫颈 |
+| ec | 16.4% | -0.4% | 宫颈 |
+| respiratory tract-Diseased cells | 11.2% | -16.1% ❌ | 呼吸道 |
+| Urine-AUC | 4.7% | -3.4% | 尿液 |
+| Serous effusion-Diseased cells | 3.7% | -36.7% ❌ | 浆膜腔 |
+| respiratory tract-adenocarcinoma | 1.6% | +0.1% | 呼吸道 |
+
+### Novel Per-Class AP (零样本，11类)
+
+| 类别 | AP | AP@50 | vs 基准 | 样本数 | 域 |
+|------|-----|-------|---------|--------|-----|
+| **Urine-HGUC** | **55.1%** | 69.4% | -1.9% | 44 | 尿液 |
+| respiratory tract-Small cell carcinoma | 7.3% | 9.7% | +7.3% ✅ | 396 | 呼吸道 |
+| hsil_scc_omn | 7.2% | 14.6% | -0.2% | 1942 | 宫颈 |
+| Thyroid gland-Suspicious papillary cancer | 7.1% | 10.8% | +3.1% ✅ | 2529 | 甲状腺 |
+| Serous effusion-Ovarian cancer | 5.6% | 6.3% | +4.9% ✅ | 19 | 浆膜腔 |
+| Serous effusion-adenocarcinoma | 4.0% | 4.5% | +4.0% ✅ | 4 | 浆膜腔 |
+| Thyroid gland-Malignant tumour | 1.9% | 2.5% | -2.4% | 31 | 甲状腺 |
+| Thyroid gland-AUC | 0.2% | 0.3% | +0.2% | 158 | 甲状腺 |
+| respiratory tract-Squamous cell carcinoma | 0.1% | 0.2% | -1.6% | 27 | 呼吸道 |
+| monilia | 0.0% | 0.0% | 0.0% | 459 | 宫颈 |
+| Thyroid gland-NS | 0.0% | 0.0% | 0.0% | 32 | 甲状腺 |
+
+### 训练曲线
+
+| Epoch | mAP | mAP@50 | 备注 |
+|-------|-----|--------|------|
+| 1 | 17.0% | 27.6% | |
+| 2 | 19.2% | 30.6% | |
+| 3 | 19.3% | 30.6% | |
+| 4 | 21.3% | 32.9% | |
+| 5 | 22.3% | 34.4% | |
+| 6 | 21.6% | 33.3% | |
+| 7 | 21.8% | 33.7% | |
+| **8** | **22.5%** | **34.8%** | **最佳** |
+| 9 | 21.5% | 33.3% | 开始下降 |
+| 10 | 22.0% | 34.1% | |
+| 11 | 21.3% | 32.8% | |
+| 12 | 21.1% | 32.4% | |
+
+### 关键发现
+
+- **Base 性能下降**: mAP 28.4% vs 基准 32.1% (-3.7%)
+- **Novel 性能提升**: mAP 8.1% vs 基准 6.8% (+1.3%)
+- **最佳 Epoch 提前到 8**: 冻结 backbone 减缓了过拟合
+- **部分 Novel 类显著提升**:
+  - respiratory tract-Small cell carcinoma: +7.3% (0% → 7.3%)
+  - Serous effusion-Ovarian cancer: +4.9% (0.7% → 5.6%)
+  - Serous effusion-adenocarcinoma: +4.0% (0% → 4.0%)
+- **Base 类严重下降**:
+  - Serous effusion-Diseased cells: -36.7% (40.4% → 3.7%)
+  - respiratory tract-Diseased cells: -16.1% (27.3% → 11.2%)
+- **结论**: 冻结 backbone 有助于 Novel 泛化，但损害 Base 性能
 
 ---
 
-## 实验 4: 调整 Loss 权重 (待运行)
+## 实验 4: 调整 Loss 权重
 
 ### 配置信息
 
@@ -295,7 +370,11 @@ CUDA_VISIBLE_DEVICES=0 python train.py config/wedetect_tiny_tct_exp2.py
 |------|-----|
 | 配置文件 | `config/wedetect_tiny_tct_exp3.py` |
 | 工作目录 | `work_dirs/wedetect_tiny_tct_exp3/` |
-| 状态 | ⏳ 待运行 |
+| Checkpoint | `best_coco_bbox_mAP_epoch_9.pth` |
+| 训练日志 | `20260115_203938/vis_data/*.log` |
+| 总 Epochs | 12 |
+| 最佳 Epoch | 9 |
+| 状态 | ✅ 完成 |
 
 ### 配置变更 (vs 基准)
 
@@ -304,12 +383,159 @@ CUDA_VISIBLE_DEVICES=0 python train.py config/wedetect_tiny_tct_exp2.py
 | Max Epochs | 15 | **12** |
 | Loss Cls Weight | 0.5 | **1.0** |
 | Loss BBox Weight | 7.5 | **5.0** |
+| Batch Size | 28 | **10** |
 
-### 运行命令
+### 总体结果
 
-```bash
-CUDA_VISIBLE_DEVICES=0 python train.py config/wedetect_tiny_tct_exp3.py
-```
+| 评估集 | mAP | mAP@50 | vs 基准 |
+|--------|-----|--------|---------|
+| **Base** (全部20类) | 23.2% | 36.1% | -2.2% ❌ |
+| **Base** (排除负样本, 15类) | 29.6% | 45.5% | -2.5% ❌ |
+| **Novel** (零样本, 11类) | **9.1%** | 11.8% | **+2.3%** ✅ |
+
+### Base Per-Class AP (排除负样本，15类)
+
+| 类别 | AP | vs 基准 | 域 |
+|------|-----|---------|-----|
+| Serous effusion-Breast cancer | 58.9% | +3.2% | 浆膜腔 |
+| dysbacteriosis_herpes_act | 52.8% | -1.0% | 宫颈 |
+| Thyroid gland-Suspicious for Malignancy | 50.2% | -11.9% | 甲状腺 |
+| Thyroid gland-Papillary cancer | 44.2% | -6.4% | 甲状腺 |
+| Serous effusion-Diseased cells | 32.3% | -8.1% | 浆膜腔 |
+| agc_adenocarcinoma_em | 32.6% | +4.4% | 宫颈 |
+| ascus | 30.5% | -1.0% | 宫颈 |
+| lsil | 30.6% | +0.8% | 宫颈 |
+| vaginalis | 22.5% | +0.5% | 宫颈 |
+| respiratory tract-Diseased cells | 21.2% | -6.1% | 呼吸道 |
+| Urine-SHGUC | 21.0% | -12.4% | 尿液 |
+| asch | 20.4% | +0.7% | 宫颈 |
+| ec | 15.6% | -1.2% | 宫颈 |
+| Urine-AUC | 10.7% | +2.6% | 尿液 |
+| respiratory tract-adenocarcinoma | 0.6% | -0.9% | 呼吸道 |
+
+### Novel Per-Class AP (零样本，11类)
+
+| 类别 | AP | AP@50 | vs 基准 | 样本数 | 域 |
+|------|-----|-------|---------|--------|-----|
+| **Urine-HGUC** | **68.2%** | 84.6% | **+11.2%** ✅ | 44 | 尿液 |
+| Serous effusion-Ovarian cancer | 9.9% | 11.0% | +9.2% ✅ | 19 | 浆膜腔 |
+| respiratory tract-Small cell carcinoma | 9.0% | 12.0% | +9.0% ✅ | 396 | 呼吸道 |
+| hsil_scc_omn | 6.6% | 13.2% | -0.8% | 1942 | 宫颈 |
+| Thyroid gland-Suspicious papillary cancer | 4.6% | 7.0% | +0.6% | 2529 | 甲状腺 |
+| respiratory tract-Squamous cell carcinoma | 1.0% | 1.3% | -0.7% | 27 | 呼吸道 |
+| Serous effusion-adenocarcinoma | 0.7% | 0.9% | +0.7% | 4 | 浆膜腔 |
+| Thyroid gland-AUC | 0.1% | 0.1% | +0.1% | 158 | 甲状腺 |
+| Thyroid gland-Malignant tumour | 0.0% | 0.0% | -4.3% | 31 | 甲状腺 |
+| monilia | 0.0% | 0.0% | 0.0% | 459 | 宫颈 |
+| Thyroid gland-NS | 0.0% | 0.0% | 0.0% | 32 | 甲状腺 |
+
+### 训练曲线
+
+| Epoch | mAP | mAP@50 | 备注 |
+|-------|-----|--------|------|
+| 1 | 17.5% | 28.1% | |
+| 2 | 20.0% | 32.3% | |
+| 3 | 19.4% | 31.0% | |
+| 4 | 21.4% | 34.0% | |
+| 5 | 21.1% | 33.0% | |
+| 6 | 22.5% | 34.9% | |
+| 7 | 22.7% | 35.6% | |
+| 8 | 22.5% | 34.9% | |
+| **9** | **23.2%** | **36.1%** | **最佳** |
+| 10 | 22.2% | 34.5% | 开始下降 |
+| 11 | 22.1% | 34.3% | |
+| 12 | 21.4% | 33.0% | |
+
+### 关键发现
+
+- **Novel 性能最佳**: mAP 9.1% vs 基准 6.8% (+2.3%)，是所有实验中最高
+- **Base 性能下降**: mAP 29.6% vs 基准 32.1% (-2.5%)
+- **Urine-HGUC 突破**: 68.2% AP，比基准提升 11.2%
+- **多个 Novel 类显著提升**:
+  - Urine-HGUC: +11.2% (57.0% → 68.2%)
+  - Serous effusion-Ovarian cancer: +9.2% (0.7% → 9.9%)
+  - respiratory tract-Small cell carcinoma: +9.0% (0% → 9.0%)
+- **结论**: 增加分类 loss 权重有效提升 Novel 类泛化能力
+
+---
+
+## 实验 5: 组合策略 (冻结 Backbone + 调整 Loss 权重)
+
+### 配置信息
+
+| 项目 | 值 |
+|------|-----|
+| 配置文件 | `config/wedetect_tiny_tct_exp4.py` |
+| 工作目录 | `work_dirs/wedetect_tiny_tct_exp4/` |
+| Checkpoint | `best_coco_bbox_mAP_epoch_7.pth` |
+| 训练日志 | `work_dirs/exp4_train.log` |
+| 总 Epochs | 12 |
+| 最佳 Epoch | 7 |
+| 状态 | ✅ 完成 |
+
+### 配置变更 (vs 基准)
+
+| 参数 | 基准 | 实验4 |
+|------|------|-------|
+| Max Epochs | 15 | **12** |
+| Image Backbone | 不冻结 | **冻结前两层** (来自实验2) |
+| Loss Cls Weight | 0.5 | **1.0** (来自实验3) |
+| Loss BBox Weight | 7.5 | **5.0** (来自实验3) |
+| Batch Size | 28 | **20** (2卡 × 10) |
+| Base LR | 2e-4 | **1.43e-4** (按batch_size缩放) |
+
+### 总体结果
+
+| 评估集 | mAP | mAP@50 | vs 基准 |
+|--------|-----|--------|---------|
+| **Base** (全部20类) | 19.9% | 30.7% | -5.5% ❌ |
+| **Base** (排除负样本, 15类) | 24.3% | 37.5% | **-7.8%** ❌ |
+| **Novel** (零样本, 11类) | **9.0%** | 11.7% | +2.2% ✅ |
+
+### Novel Per-Class AP (零样本，11类)
+
+| 类别 | AP | AP@50 | vs 基准 | 样本数 | 域 |
+|------|-----|-------|---------|--------|-----|
+| **Urine-HGUC** | **64.9%** | 80.7% | +7.9% ✅ | 44 | 尿液 |
+| respiratory tract-Small cell carcinoma | 7.9% | 10.5% | +7.9% ✅ | 396 | 呼吸道 |
+| Serous effusion-Ovarian cancer | 7.3% | 7.6% | +6.6% ✅ | 19 | 浆膜腔 |
+| Thyroid gland-Suspicious papillary cancer | 7.0% | 11.6% | +3.0% ✅ | 2529 | 甲状腺 |
+| hsil_scc_omn | 6.5% | 13.2% | -0.9% | 1942 | 宫颈 |
+| Thyroid gland-Malignant tumour | 3.4% | 4.5% | -0.9% | 31 | 甲状腺 |
+| Serous effusion-adenocarcinoma | 0.9% | 1.1% | +0.9% | 4 | 浆膜腔 |
+| respiratory tract-Squamous cell carcinoma | 0.6% | 1.1% | -1.1% | 27 | 呼吸道 |
+| Thyroid gland-AUC | 0.1% | 0.2% | +0.1% | 158 | 甲状腺 |
+| monilia | 0.0% | 0.0% | 0.0% | 459 | 宫颈 |
+| Thyroid gland-NS | 0.0% | 0.0% | 0.0% | 32 | 甲状腺 |
+
+### 训练曲线
+
+| Epoch | mAP | mAP@50 | 备注 |
+|-------|-----|--------|------|
+| 1 | 18.7% | 29.8% | |
+| 2 | 18.1% | 29.1% | |
+| 3 | 20.5% | 32.6% | |
+| 4 | 20.9% | 33.4% | |
+| 5 | 23.7% | 37.2% | |
+| 6 | 22.2% | 34.8% | |
+| **7** | **24.3%** | **37.5%** | **最佳** |
+| 8 | 22.2% | 34.7% | 开始下降 |
+| 9 | 22.7% | 35.4% | |
+| 10 | 21.2% | 32.9% | |
+| 11 | 20.8% | 32.2% | |
+| 12 | 19.9% | 30.7% | |
+
+### 关键发现
+
+- **Base 性能严重下降**: mAP 24.3% vs 基准 32.1% (**-7.8%**)，是所有实验中下降最多的
+- **Novel 性能提升**: mAP 9.0% vs 基准 6.8% (+2.2%)，略低于实验3的 9.1%
+- **组合策略未达预期**:
+  - 实验2 (冻结): Base -3.7%, Novel +1.3%
+  - 实验3 (Loss): Base -2.5%, Novel +2.3%
+  - 实验4 (组合): Base **-7.8%**, Novel +2.2%
+  - 组合策略的 Base 下降幅度超过了两者相加 (-3.7% + -2.5% = -6.2%)
+- **最佳 Epoch 提前到 7**: 比基准和实验3都更早
+- **结论**: 冻结 backbone 和调整 loss 权重的组合产生了负面叠加效应，严重损害 Base 性能，而 Novel 性能提升并未叠加
 
 ---
 
@@ -368,21 +594,25 @@ CUDA_VISIBLE_DEVICES=0 python train.py config/wedetect_tiny_tct_exp3.py
 | 基准 / 实验1 | `config/wedetect_tiny_tct.py` |
 | 实验2 (冻结) | `config/wedetect_tiny_tct_exp2.py` |
 | 实验3 (Loss) | `config/wedetect_tiny_tct_exp3.py` |
+| 实验4 (组合) | `config/wedetect_tiny_tct_exp4.py` |
 
 ### Checkpoint
 
 | 实验 | Checkpoint |
 |------|-----------|
 | 基准 | `work_dirs/wedetect_tiny_tct/best_coco_bbox_mAP_epoch_9.pth` |
-| 实验2 | `work_dirs/wedetect_tiny_tct_exp2/best_*.pth` (待生成) |
-| 实验3 | `work_dirs/wedetect_tiny_tct_exp3/best_*.pth` (待生成) |
+| 实验2 (冻结) | `work_dirs/wedetect_tiny_tct_exp2/best_coco_bbox_mAP_epoch_8.pth` |
+| 实验3 (Loss) | `work_dirs/wedetect_tiny_tct_exp3/best_coco_bbox_mAP_epoch_9.pth` |
+| 实验4 (组合) | `work_dirs/wedetect_tiny_tct_exp4/best_coco_bbox_mAP_epoch_7.pth` |
 
 ### 评估脚本
 
 | 评估类型 | 脚本 |
 |----------|------|
 | Base 评估 (排除负样本) | `test_exclude_negative.py` |
-| Novel 评估 | `eval_novel_manual.py` |
+| Novel 评估 (实验2) | `eval_novel_exp2.py` |
+| Novel 评估 (实验3) | `eval_novel_exp3.py` |
+| Novel 评估 (实验4) | `eval_novel_exp4.py` |
 
 ---
 
@@ -412,19 +642,37 @@ python eval_novel_manual.py
 
 ## 总结与目标
 
-| 指标 | 当前值 | 目标值 |
-|------|--------|--------|
-| Base mAP (排除负样本) | 32.1% | > 35% |
-| Novel mAP (零样本) | 6.8% | > 10% |
-| 最佳 Epoch | 9 | 减少过拟合 |
+| 指标 | 基准 | 实验2 (冻结) | 实验3 (Loss) | 实验4 (组合) | 最佳 |
+|------|------|-------------|-------------|-------------|------|
+| Base mAP (排除负样本) | **32.1%** | 28.4% | 29.6% | 24.3% | 基准 |
+| Novel mAP (零样本) | 6.8% | 8.1% | **9.1%** | 9.0% | 实验3 |
+| 最佳 Epoch | 9 | 8 | 9 | 7 | - |
 
-**下一步行动**:
-1. 补跑实验1的详细评估 (Base排除负样本 + Novel)
-2. 运行实验2 (冻结 backbone)
-3. 运行实验3 (调整 loss 权重)
-4. 改进 Novel 类文本描述
+### 关键结论
+
+1. **Base vs Novel 权衡**: 所有改进 Novel 性能的方法都会降低 Base 性能
+2. **最佳 Novel 策略**: 调整 Loss 权重 (cls=1.0, bbox=5.0) 提升 Novel mAP 最多 (+2.3%)
+3. **组合策略失败**: 实验4组合冻结+Loss调整，Base性能下降-7.8%，Novel提升仅+2.2%，未达到叠加效果
+4. **Urine-HGUC 效果最好**: 在实验3中达到 68.2% AP，是所有 Novel 类中最高
+5. **顽固失败类**: monilia, Thyroid gland-NS 在所有实验中都是 0%，需要改进文本描述
+
+### 实验对比分析
+
+| 实验 | Base 变化 | Novel 变化 | 分析 |
+|------|----------|-----------|------|
+| 实验2 (冻结) | -3.7% | +1.3% | 冻结backbone减缓过拟合，但损害Base性能 |
+| 实验3 (Loss) | -2.5% | +2.3% | 增加分类loss权重最有效提升Novel |
+| 实验4 (组合) | **-7.8%** | +2.2% | 负面叠加效应，严重损害Base，Novel未叠加 |
+
+### 下一步建议
+
+1. ~~**组合策略**~~: 已完成，效果不佳（负面叠加）
+2. **文本描述改进**: 针对 mAP=0 的 Novel 类（monilia, Thyroid gland-NS等）改进文本描述
+3. **数据增强**: 增加更多数据增强策略减少过拟合
+4. **Early Stopping**: 设置早停策略，在 epoch 8-9 左右停止训练
+5. **单独策略优化**: 基于实验3（Loss调整）进一步优化，避免组合策略
 
 ---
 
 *文档创建时间: 2026-01-13*
-*最后更新时间: 2026-01-13*
+*最后更新时间: 2026-01-20*

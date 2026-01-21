@@ -1,7 +1,8 @@
 _base_ = ["default_runtime.py"]
 
-# ======================= 实验3: 调整Loss权重 =======================
-# 目的: 增加分类loss权重，降低bbox loss权重，提升分类学习
+# ======================= 实验4: 组合策略 (冻结Backbone + 调整Loss权重) =======================
+# 目的: 结合实验2和实验3的优点，同时冻结backbone前两层并调整loss权重
+# 预期: Novel性能进一步提升
 
 data_root = "/home1/liwenjie/TCT_NGC/"
 train_class_text_path = "data/texts/tct_ngc_v2_base_class_texts.json"
@@ -29,18 +30,20 @@ novel_classes = (
 all_classes = base_classes + novel_classes
 dataset_metainfo = dict(classes=base_classes)
 
-# ======================= 实验3 超参数 =======================
+# ======================= 实验4 超参数 (组合策略) =======================
+# 使用2张卡训练，每卡batch_size=10，总batch_size=20
+# 学习率按线性缩放: base_lr * (20/28) ≈ 1.43e-4
 num_classes = 31
 num_training_classes = 20
-max_epochs = 12                     # 减少epoch，因为最佳在epoch 9
+max_epochs = 12                     # 减少epoch，因为最佳在epoch 8-9
 close_mosaic_epochs = 2
 save_epoch_intervals = 1
 text_channels = 768
 neck_embed_channels = [128, 256, 512]
 neck_num_heads = [4, 8, 16]
-base_lr = 2e-4                      # 保持基准学习率
+base_lr = 1.43e-4                   # 按batch_size线性缩放: 2e-4 * (20/28)
 weight_decay = 0.05
-train_batch_size_per_gpu = 10
+train_batch_size_per_gpu = 10       # 2卡 x 10 = 20
 
 find_unused_parameters = True
 
@@ -55,14 +58,14 @@ tal_topk = 10
 tal_alpha = 0.5
 tal_beta = 2.0
 
-# 实验3: 调整loss权重
+# 实验4: 调整loss权重 (来自实验3)
 loss_cls_weight = 1.0               # 从 0.5 增加到 1.0
 loss_bbox_weight = 5.0              # 从 7.5 降低到 5.0
 loss_dfl_weight = 1.5 / 4
 
 custom_imports = dict(imports=["wedetect"], allow_failed_imports=False)
 
-# ======================= 模型配置 =======================
+# ======================= 模型配置 (冻结backbone前两层 + 调整loss) =======================
 model = dict(
     type="YOLOWorldDetector",
     mm_neck=False,
@@ -78,7 +81,8 @@ model = dict(
         image_model=dict(
             type="ConvNextVisionBackbone",
             model_name="tiny",
-            frozen_modules=[],
+            # 实验4: 冻结前两层 (来自实验2)
+            frozen_modules=['downsample_layers.0', 'stages.0'],
         ),
         text_model=dict(
             type="XLMRobertaLanguageBackbone",
@@ -296,6 +300,6 @@ default_hooks = dict(
 )
 
 dist_cfg = dict(backend="nccl", timeout=10800)
-work_dir = './work_dirs/wedetect_tiny_tct_exp3'
+work_dir = './work_dirs/wedetect_tiny_tct_exp4'
 load_from = 'checkpoints/wedetect_tiny.pth'
 resume = False

@@ -3,7 +3,7 @@ _base_ = ["default_runtime.py"]
 # ======================= 实验2: 冻结Backbone前两层 =======================
 # 目的: 防止过拟合，保留预训练特征
 
-data_root = "/root/datasets/TCT_NGC/"
+data_root = "/home1/liwenjie/TCT_NGC/"
 train_class_text_path = "data/texts/tct_ngc_v2_base_class_texts.json"
 test_class_text_path = "data/texts/tct_ngc_v2_class_texts.json"
 
@@ -40,7 +40,7 @@ neck_embed_channels = [128, 256, 512]
 neck_num_heads = [4, 8, 16]
 base_lr = 2e-4                      # 保持基准学习率
 weight_decay = 0.05
-train_batch_size_per_gpu = 28
+train_batch_size_per_gpu = 14
 
 find_unused_parameters = True
 
