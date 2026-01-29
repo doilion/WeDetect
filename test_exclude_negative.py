@@ -2,11 +2,12 @@
 """Test script to evaluate model excluding negative classes."""
 
 import argparse
-import os
 import sys
+from pathlib import Path
 
 # Add project root to path
-sys.path.insert(0, '/root/code/WeDetect')
+PROJECT_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from mmdet.utils import register_all_modules
 register_all_modules()
@@ -30,6 +31,8 @@ def main():
                         help='checkpoint file')
     parser.add_argument('--exclude-negative', action='store_true', default=True,
                         help='exclude negative classes from evaluation')
+    parser.add_argument('--work-dir', default='./work_dirs/test_exclude_negative',
+                        help='work dir for evaluation outputs')
     args = parser.parse_args()
 
     # Load config
@@ -50,7 +53,7 @@ def main():
         cfg.test_evaluator = cfg.val_evaluator
 
     # Set work dir for this test
-    cfg.work_dir = './work_dirs/test_exclude_negative'
+    cfg.work_dir = args.work_dir
 
     # Build runner
     runner = Runner.from_cfg(cfg)
