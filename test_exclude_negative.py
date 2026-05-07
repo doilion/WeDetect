@@ -29,6 +29,19 @@ NEGATIVE_CLASS_NAMES = [
 ]
 
 
+def resolve_ann_file(data_root: str, ann_file: str) -> str:
+    ann_path = Path(ann_file)
+    if ann_path.is_absolute():
+        return str(ann_path)
+    return str(Path(data_root) / ann_path)
+
+
+def refresh_evaluator_ann_file(cfg):
+    ann_file = cfg.val_dataloader.dataset.dataset.ann_file
+    cfg.val_evaluator.ann_file = resolve_ann_file(cfg.data_root, ann_file)
+    cfg.test_evaluator = cfg.val_evaluator
+
+
 def main():
     parser = argparse.ArgumentParser(description='Test with excluded negative classes')
     parser.add_argument(
@@ -45,6 +58,12 @@ def main():
                         help='exclude negative classes from evaluation')
     parser.add_argument('--work-dir', default='./work_dirs/test_exclude_negative',
                         help='work dir for evaluation outputs')
+    parser.add_argument('--data-root', default=None,
+                        help='override cfg.data_root (e.g. /home1/liwenjie/TCT_NGC/ '
+                             'when running held-out test on the non-cache640 host)')
+    parser.add_argument('--ann-file', default=None,
+                        help='override the test ann_file relative to --data-root '
+                             '(e.g. annotations/instances_test_base_clean.json)')
     args = parser.parse_args()
 
     # Load config
@@ -52,6 +71,16 @@ def main():
 
     # Set checkpoint
     cfg.load_from = resolve_latest_checkpoint(args.checkpoint, cfg.work_dir)
+
+    if args.data_root:
+        cfg.data_root = args.data_root
+        cfg.test_dataloader.dataset.dataset.data_root = args.data_root
+        cfg.val_dataloader.dataset.dataset.data_root = args.data_root
+        refresh_evaluator_ann_file(cfg)
+    if args.ann_file:
+        cfg.test_dataloader.dataset.dataset.ann_file = args.ann_file
+        cfg.val_dataloader.dataset.dataset.ann_file = args.ann_file
+        refresh_evaluator_ann_file(cfg)
 
     # Modify evaluator to use ExcludeClassCocoMetric
     if args.exclude_negative:
