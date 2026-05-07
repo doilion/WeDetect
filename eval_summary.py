@@ -3,10 +3,10 @@
 实验总结脚本 - 自动评估 Base 和 Novel 类并生成 Markdown 报告
 
 用法:
-    python eval_summary.py --exp_name exp2 --checkpoint work_dirs/wedetect_tiny_tct_exp2/best_*.pth
+    python eval_summary.py --exp_name dev32 --checkpoint work_dirs/wedetect_tiny_tct_ngc_dev32_cache640_fullnames_2gpu/best_*.pth
 
     或者指定配置文件:
-    python eval_summary.py --config config/wedetect_tiny_tct_exp2.py --checkpoint work_dirs/wedetect_tiny_tct_exp2/best_*.pth
+    python eval_summary.py --config config/wedetect_tiny_tct_ngc_dev32_cache640_fullnames_2gpu.py --checkpoint work_dirs/wedetect_tiny_tct_ngc_dev32_cache640_fullnames_2gpu/best_*.pth
 """
 
 import argparse
@@ -16,7 +16,7 @@ import json
 import glob
 from datetime import datetime
 
-sys.path.insert(0, '/root/code/WeDetect')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import torch
 import numpy as np
@@ -33,25 +33,21 @@ from mmengine.dataset import Compose
 from mmengine.runner import Runner
 
 
-# 配置
-DATA_ROOT = "/root/datasets/TCT_NGC/"
+# 配置 — DATA_ROOT 可通过环境变量覆盖（默认匹配 cache640 host）
+DATA_ROOT = os.environ.get("TCT_NGC_DATA_ROOT", "/home1/liwenjie/TCT_NGC/")
 BASE_ANN_FILE = DATA_ROOT + "annotations/test_base_v2.json"
 NOVEL_ANN_FILE = DATA_ROOT + "annotations/test_novel_v2.json"
 
-# 负样本类别（排除评估）
+# 负样本类别 — 与 test_exclude_negative.py 保持一致（dev32 32 类布局）
 NEGATIVE_CLASS_NAMES = [
-    'normal',
+    'respiratory tract-Impurity',
     'Serous effusion-Negative samples',
     'Thyroid gland-Negative samples',
+    'Urine-NILM',
     'Urine-Negative',
-    'respiratory tract-Negative samples',
+    'Urine-Negative Degeneration',
+    'TCT_CCD-normal',
 ]
-
-# Novel 类标签映射
-NOVEL_LABEL_TO_CAT_ID = {
-    20: 1, 21: 2, 22: 3, 23: 4, 24: 5,
-    25: 6, 26: 7, 27: 8, 28: 9, 29: 10, 30: 11,
-}
 
 
 def evaluate_base_classes(cfg, checkpoint, exclude_negative=True):
@@ -83,16 +79,23 @@ def evaluate_base_classes(cfg, checkpoint, exclude_negative=True):
 
 
 def evaluate_novel_classes(cfg, checkpoint):
-    """评估 Novel 类 (零样本)"""
-    print("\n" + "=" * 60)
-    print("评估 Novel 类 (11类, 零样本)")
-    print("=" * 60)
+    """评估 Novel 类 (零样本) — 当前对 dev32 32 类不可用，见审计 P1/P2。
+
+    NOVEL_LABEL_TO_CAT_ID 与 32 类索引语义已脱钩：原来 idx 20..30 对应 11 个 novel
+    类，现在 32 类下 20..30 是 Urine-Negative Degeneration / Urine-HGUC / TCT_CCD-*。
+    要恢复 novel eval：(a) 提供 tct_ngc_novel_11_texts.json 严格 11 prompt，
+    (b) 重写 NOVEL_LABEL_TO_CAT_ID 映射到 11 类。
+    """
+    raise NotImplementedError(
+        "evaluate_novel_classes 与 dev32 32 类布局不兼容，会输出错误的 novel AP。"
+        "见 docs/tct_ngc_dev32_fullnames_baseline_report_20260506.md 与审计 P2。"
+    )
 
     # 加载模型
     model = init_detector(cfg, checkpoint=checkpoint, device='cuda:0')
 
-    # 加载 31 类文本
-    with open('data/texts/tct_ngc_v2_class_texts.json', 'r') as f:
+    # 加载当前 32 类文本
+    with open('data/texts/tct_ngc_fullnames_32.json', 'r') as f:
         texts = json.load(f)
     texts = [[t[0]] for t in texts] + [[' ']]
 
@@ -247,7 +250,11 @@ def generate_report(exp_name, checkpoint, base_metrics, novel_metrics, output_di
 def main():
     parser = argparse.ArgumentParser(description='实验总结脚本')
     parser.add_argument('--exp_name', default='experiment', help='实验名称')
-    parser.add_argument('--config', default='config/wedetect_tiny_tct.py', help='配置文件')
+    parser.add_argument(
+        '--config',
+        default='config/wedetect_tiny_tct_ngc_dev32_cache640_fullnames_2gpu.py',
+        help='配置文件',
+    )
     parser.add_argument('--checkpoint', required=True, help='模型检查点路径 (支持通配符)')
     parser.add_argument('--output_dir', default='work_dirs/summaries', help='报告输出目录')
     parser.add_argument('--skip_base', action='store_true', help='跳过 Base 类评估')

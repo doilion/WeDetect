@@ -567,9 +567,21 @@ class PseudoLanguageBackbone(BaseModule):
         )
 
     def forward_cache(self, text: List[List[str]]) -> Tensor:
-        if not hasattr(self, "cache"):
-            self.cache = self.forward_text(text)
-        return self.cache
+        cache_key = tuple(text[0])
+        if any(tuple(t) != cache_key for t in text):
+            return self.forward_text(text)
+
+        if not hasattr(self, "cache_bank"):
+            self.cache_bank = {}
+        if cache_key not in self.cache_bank:
+            # Cache one copy and expand to the current eval batch size. The
+            # final validation batch can be smaller than the first one.
+            self.cache_bank[cache_key] = self.forward_text([list(cache_key)]).detach()
+
+        # expand returns a non-contiguous broadcast view; safe because the
+        # contrastive head only reads (cosine matmul). Do not call .view()
+        # on the result without .contiguous() first.
+        return self.cache_bank[cache_key].expand(len(text), -1, -1)
 
     def forward(self, text: List[List[str]]) -> Tensor:
         if self.training:

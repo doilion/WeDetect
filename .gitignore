@@ -100,3 +100,6 @@ temp/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Stray markers from external tools
+.codex

@@ -64,10 +64,12 @@ def main():
 
     # enable automatic-mixed-precision training
     if args.amp:
+        optim_wrapper = dict(cfg.optim_wrapper)
+        optim_wrapper.pop('type', None)
         cfg.optim_wrapper = dict(
             type='AmpOptimWrapper',
             constructor='YOLOWv5OptimizerConstructor',
-            **cfg.optim_wrapper)
+            **optim_wrapper)
 
     # resume from checkpoint
     if args.resume == 'auto':
