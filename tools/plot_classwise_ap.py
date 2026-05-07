@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import re
 from pathlib import Path
 
@@ -48,6 +49,8 @@ def parse_log(path: Path) -> list[tuple[str, float, float]]:
             ap50 = float(m.group("map50"))
         except ValueError:
             continue
+        if not (math.isfinite(ap) and math.isfinite(ap50)):
+            continue
         rows.append((name, ap, ap50))
     return rows
 
@@ -67,28 +70,43 @@ def main() -> None:
     names = [r[0] for r in rows]
     aps = [r[1] for r in rows]
     aps50 = [r[2] for r in rows]
-    colors = [SUPER_COLOR.get(supercategory(n), "#888") for n in names]
+    colors = [SUPER_COLOR.get(supercategory(n), "#888888") for n in names]
 
-    fig, ax = plt.subplots(figsize=(11, max(6, 0.32 * len(rows))))
-    y = range(len(rows))
-    ax.barh(y, aps50, color=colors, alpha=0.35, label="mAP_50")
-    ax.barh(y, aps, color=colors, alpha=0.95, label="mAP")
+    n = len(rows)
+    fig, ax = plt.subplots(figsize=(12, max(6, 0.4 * n)))
+    import numpy as np
+    y = np.arange(n)
+    bar_h = 0.38
+    ax.barh(y - bar_h / 2, aps, height=bar_h, color=colors, alpha=0.95,
+            edgecolor="black", linewidth=0.4)
+    ax.barh(y + bar_h / 2, aps50, height=bar_h, color=colors, alpha=0.45,
+            edgecolor="black", linewidth=0.4)
     for i, (ap, ap50) in enumerate(zip(aps, aps50)):
-        ax.text(ap + 0.005, i, f"{ap:.3f}", va="center", fontsize=8)
-        ax.text(ap50 + 0.005, i, f"({ap50:.2f})", va="center", fontsize=7, color="#555")
+        ax.text(ap + 0.005, i - bar_h / 2, f"mAP {ap:.3f}", va="center",
+                fontsize=8, fontweight="bold")
+        ax.text(ap50 + 0.005, i + bar_h / 2, f"AP50 {ap50:.3f}", va="center",
+                fontsize=7, color="#555555")
     ax.set_yticks(list(y))
     ax.set_yticklabels(names, fontsize=8)
-    ax.set_xlabel("AP")
-    ax.set_xlim(0, max(max(aps50) + 0.10, 1.0))
+    ax.set_xlabel("AP score")
+    ax.set_xlim(0, max(max(aps50) + 0.15, 1.0))
     ax.set_title(args.title)
-    ax.axvline(sum(aps) / len(aps), color="black", linestyle="--", linewidth=0.8,
-               label=f"mean mAP = {sum(aps) / len(aps):.3f}")
+    mean_ap = sum(aps) / len(aps)
+    mean_ap50 = sum(aps50) / len(aps50)
+    ax.axvline(mean_ap, color="black", linestyle="--", linewidth=0.8)
+    ax.axvline(mean_ap50, color="gray", linestyle=":", linewidth=0.8)
     handles = [
         plt.Rectangle((0, 0), 1, 1, color=c, label=k) for k, c in SUPER_COLOR.items()
     ]
+    handles.append(plt.Rectangle((0, 0), 1, 1, color="#666666", alpha=0.95,
+                                 label="mAP (solid, lower bar)"))
+    handles.append(plt.Rectangle((0, 0), 1, 1, color="#666666", alpha=0.45,
+                                 label="AP50 (faded, upper bar)"))
     handles.append(plt.Line2D([0], [0], color="black", linestyle="--",
-                              label=f"mean mAP = {sum(aps) / len(aps):.3f}"))
-    ax.legend(handles=handles, loc="lower right", fontsize=8)
+                              label=f"mean mAP = {mean_ap:.3f}"))
+    handles.append(plt.Line2D([0], [0], color="gray", linestyle=":",
+                              label=f"mean AP50 = {mean_ap50:.3f}"))
+    ax.legend(handles=handles, loc="lower right", fontsize=7, framealpha=0.95)
     ax.grid(axis="x", alpha=0.3)
     fig.tight_layout()
     out = Path(args.out)
