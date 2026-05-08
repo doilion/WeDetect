@@ -12,7 +12,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from mmdet.utils import register_all_modules
 register_all_modules()
 
-from mmengine.config import Config
+from mmengine.config import Config, DictAction
 from mmengine.runner import Runner
 
 from wedetect.utils import resolve_latest_checkpoint
@@ -64,6 +64,15 @@ def main():
     parser.add_argument('--ann-file', default=None,
                         help='override the test ann_file relative to --data-root '
                              '(e.g. annotations/instances_test_base_clean.json)')
+    parser.add_argument('--cfg-options', nargs='+', action=DictAction, default=None,
+                        help='override config entries (mmengine standard form). '
+                             'Note: applied AFTER the script rebuilds val_evaluator '
+                             '(when --exclude-negative is on, default), so cfg-options '
+                             'targeting test_evaluator/val_evaluator survive.')
+    parser.add_argument('--outfile-prefix', default=None,
+                        help='persist predictions to <prefix>.bbox.json (passes through '
+                             'to val_evaluator.outfile_prefix; survives the evaluator '
+                             'rebuild done by --exclude-negative)')
     args = parser.parse_args()
 
     # Load config
@@ -91,6 +100,24 @@ def main():
             exclude_class_id=NEGATIVE_CLASS_NAMES,  # 排除负样本类别
             classwise=True,
         )
+        cfg.test_evaluator = cfg.val_evaluator
+
+    # Apply --cfg-options AFTER the evaluator rebuild so user overrides
+    # (e.g. test_evaluator.outfile_prefix=...) survive.
+    if args.cfg_options:
+        cfg.merge_from_dict(args.cfg_options)
+        # runner.test() reads cfg.test_evaluator; merge_from_dict may have
+        # diverged val_evaluator and test_evaluator (mmengine creates fresh
+        # ConfigDict on the merged path). Mirror val → test unless the user
+        # explicitly targeted test_evaluator.* in --cfg-options.
+        targeted_test = any(str(k).startswith("test_evaluator")
+                            for k in args.cfg_options)
+        if not targeted_test:
+            cfg.test_evaluator = cfg.val_evaluator
+
+    # --outfile-prefix takes precedence: write into the (possibly rebuilt) evaluator.
+    if args.outfile_prefix:
+        cfg.val_evaluator['outfile_prefix'] = args.outfile_prefix
         cfg.test_evaluator = cfg.val_evaluator
 
     # Set work dir for this test

@@ -4,7 +4,7 @@
 
 新 patient-disjoint split 上重训 dev32 fullnames baseline 12 epoch，主要结论：
 
-**Headline（双口径）**
+**Headline 1 — Base 类（25 类 exclude-negative，双口径）**
 
 | 口径 | val mAP | test_base mAP | val→test gap |
 |---|---:|---:|---:|
@@ -18,12 +18,31 @@
 | 旧 image-CV（patient leakage） | 0.413 | 0.323 | **+0.090** ❌ |
 | 新 patient-disjoint（本次） | 0.313 | 0.315 | **+0.002** ✅ |
 
+**Headline 2 — Novel 类 zero-shot（4 splits, v2 国际标准 prompts，详见 §11）**
+
+| split | 类数 | mAP | mAP_50 | v1 placeholder | 改善倍数 |
+|---|---:|---:|---:|---:|---:|
+| **main_3**（PSC 鳞癌 / MAL-S 乳腺转移 / Bethesda VI MTC） | 3 | **0.154** | 0.205 | 0.012 | **12.8×** |
+| pseudo_2（resp-Adeno / Serous-Ovarian） | 2 | 0.125 | 0.189 | – | – |
+| hard_4（resp-Small / Serous-Adeno / Bethesda V/VI） | 4 | 0.098 | 0.134 | – | – |
+| full_5（main_3 + pseudo_2） | 5 | 0.075 | 0.107 | – | – |
+
+**Headline 3 — 临床指标视角（box-level mAP 之外，详见 §6.5）**
+
+| 指标 | val | test_base |
+|---|---:|---:|
+| Image-level AUROC (高风险 L2/L3) | **0.977** | **0.990** |
+| Sensitivity @ Spec=0.95 | 0.875 | **0.959** |
+| Cost-weighted mean per image (越低越好) | 53.34 | 39.75 |
+
 **结论**：
 
 1. 旧 baseline val 0.413 是 patient 泄漏导致的乐观偏差，掉到 0.313 才是真实水平。新 disjoint val 跟独立 test 几乎完全对齐（差 0.002），**model selection 信号现在诚实可信**。
 2. 新模型在 test_base 上跟旧模型几乎持平（0.315 vs 0.323）—— 训练能力没退化，只是评估口径变诚实了。
-3. Novel 4 split zero-shot 用国际标准 v2 prompts（PSC / MAL-S / Bethesda）后大幅好于 v1 placeholder（main_3：v1=0.012 → v2=**0.154**，~12.8×）。
+3. Novel 4 split zero-shot 用国际标准 v2 prompts（PSC / MAL-S / Bethesda）后大幅好于 v1 placeholder（main_3：v1=0.012 → v2=**0.154**，~12.8×）。详见 §11。
 4. 弱类根因清晰：兄弟类的 prompt cosine ≥ 0.97 + 数据稀缺 + 小目标占比高 是主要驱动因素。TCT_CCD 弱类另有 dataset provenance 问题，需在结论中区别对待。
+5. **类层级设计本身有问题**：urine 3 个"阴性"子类（NILM / Negative / Neg-Degen）在 Paris System 都属同一 NHGUC，当前拆开造成"阴性引力井"把 SHGUC/AUC 预测拉走。**改类映射不需要重新标注，预期是单一最高 ROI 改进**。详见 §10。
+6. **临床实用度被 box-level mAP 严重低估**：image-level AUROC 0.99 / sens@spec=0.95 ≈ 0.96，"是否含阳性细胞"的筛查任务模型几乎完美。box-level mAP 0.31 主要因为多类等权 + 严格 IoU + 密集场景 NMS 拖低。详见 §6.5。
 
 ## §2 Split Correction：image-CV → patient-disjoint
 
@@ -132,6 +151,46 @@ ep 4: 109.05       ep 8: 104.76 ← min ep12: 110.30
 - ep3 出现 loss spike（137.0），主要是 cls loss（102.6）。其他 metric 不抖。可能是 cosine 早期 LR + DDP 同步导致的瞬时不稳定，无影响（ep4 立刻回到 109）。
 - ep11/ep12 val loss 明显回升（108.6 / 110.3），train loss 仍在降 —— **典型过拟合拐点**。意味着如果只跑 8-10 epoch 也能取到几乎相同的 best mAP。
 - 旧 baseline 因 `max_keep_ckpts=3` 只能拿到 ep10/11/12 三点，看不到拐点；本次 `max_keep_ckpts=-1` 才把这条曲线完整画出来。
+
+## §6.5 临床评估指标（box-level mAP 之外的视角）
+
+box-level COCO mAP（§4-§5）对临床部署来说有 3 个偏差：(a) 多类等权平均，把 SHGUC 跟 Squamous 同 1:1 加权；(b) 错误方向不区分（SHGUC→NILM 跟 SHGUC→HGUC 同等惩罚）；(c) box-level 严格 IoU≥0.5，对密集场景的检测分数偏低。
+
+本节用 4 个针对临床实用度的指标重新评估同一份 dev32 best ckpt：
+
+```
+                                  val      test_base
+M1 image-level AUROC (all-pos)  0.986    0.992       ← 临床筛查近完美
+M1 image-level AUROC (high-risk L2/L3)  0.977  0.990
+M1 image-level AUPRC (high-risk)   0.982    0.983
+M2 cost-weighted mean per image   53.34    39.75    ← 漏诊 10× 权重，越低越好
+M3 sens @ spec=0.95               0.875    0.959    ← 部署级（95% 阴性放过 + 96% 阳性筛出）
+M3 sens @ spec=0.99               0.621    0.726
+M4 top-1 box recall                0.150    0.107
+M4 top-5 box recall                0.373    0.312
+M4 top-10 box recall               0.467    0.416
+M4 top-20 box recall               0.525    0.489
+```
+
+GT positive 分布 (sanity)：val 65.3% 图含至少一个阳性 (L1/L2/L3)，test 42.8% — 不是极端不平衡，AUROC 数字可信。
+
+**核心反差**：
+- **image-level AUROC 0.99** vs **box-level mAP 0.31** —— "是否含阳性细胞" 这个临床筛查任务，模型几乎完美。box-level mAP 严重低估临床实用度，主要被多类等权 + box 严格匹配 + 密集场景 NMS 拖低。
+- **M3 sens@spec=0.95 = 0.875 (val) / 0.959 (test_base)** —— 在 5% 阴性误警率约束下，模型能筛出 87.5%(val) / 95.9%(test) 的真阳性图，达到"医师筛查报告"标准点。
+- **M4 top-K box recall 偏低**（top-1 0.15）—— 单看最高分框只命中 15% GT，但这是**密集场景 + 小目标类**问题，不影响 image-level 决策（M1）。已知瓶颈对应 §8.3-§8.5 的"小目标 + 同胞 prompt cos 0.97+"分析。
+
+**评估口径区分**：
+| 指标 | 适合的决策场景 |
+|---|---|
+| box-level mAP (§4) | 框级标注质量评估、传统检测对比 |
+| **M1 image-level AUROC** | **临床筛查 triage**（"这张片子要不要找医生看？"） |
+| **M2 cost-weighted** | **临床部署成本**（漏诊代价 10×）|
+| **M3 sens@spec** | **回报到病理学论文 / FDA 审批**（标准呈现方式） |
+| M4 top-K box recall | 医生 review 工作流（"我只看模型 top-K 框"） |
+
+数据来源：`work_dirs/.../disjoint_2gpu/clinical_metrics_{val,test}/clinical_metrics.json`；工具：`tools/eval_clinical_metrics.py`；cost matrix 配置：`tools/clinical_cost_config.json`（临床保守型，漏诊代价 10×过诊）。
+
+> **方法学注**：M4 top-K box recall 用**所有 GT 跨图聚合的 sum-based recall**（而非 per-image mean），并跳过"无 eval-tier GT"图（只含 ignored 类如 respiratory-Neutrophil background）。这避免了 13.7%(val)/40%(test) 空 eval-tier-GT 图被记 vacuous=1.0 导致的 mean inflation 问题。
 
 ## §7 Visual Gallery：模型预测样例
 
@@ -352,36 +411,172 @@ GT 2 个 EC（左侧绿框）+ 1 个 normal（灰）。Pred 给出 8+ 个 "TCT_C
 
 ## §9 Action Items
 
-按优先级：
+修订后的优先级（结合 §10 类层级问题，**最大单一 ROI 是 P0 类层级重构**）：
 
-### P0 - 数据集 provenance 修复
-- **TCT_CCD 重新拿原始 path 信息**做 patient-disjoint split。在此之前，TCT_CCD 4 个弱类（asch / monilia / vaginalis / ec）的 AP 数字不能用于泛化分析。
-- 增加 case-level metadata 到所有 annotation（不止 TCT_CCD），后续才能跑严谨的 cohort 实验。
+### P0 - 类层级重构（最高 ROI，不需重新标注）
+合并冗余阴性类，dev32 → dev27 左右。详见 §10。
+- Urine：3 阴性 (NILM / Negative / Neg-Degen) → 1 NHGUC
+- Thyroid：1 阴性 + 1 Macrophages 暂时合理，保留
+- Serous effusion：1 阴性 + 1 Diseased，保留
+- TCT_CCD：normal + ec 是否合并待 §10 讨论
+- 工程量：改 ann json `category_id` 映射 + 重新跑 `tools/build_text_embeddings.py` + 重训 12 ep
+- 预期：SHGUC / AUC mAP 自然提升（评估口径变诚实），整体 25cls mAP 不掉
 
-### P1 - 数据扩增（按 train_anns < 2500 优先）
-| 类 | 当前 train_anns | train_cases | 建议目标 |
-|---|---:|---:|---:|
-| Urine-AUC | 1640 | 85 | 5000 / 200 cases |
-| Urine-SHGUC | 1961 | 85 | 5000 / 200 cases |
-| TCT_CCD-monilia | 2332 | NaN | 待 provenance 修后再定 |
-| Thyroid-NS | 8463 | **69** | case 数翻倍至 150 |
+### P0' - 双层评估指标（screening + diagnostic）
+当前 mAP 把"SHGUC 分到 NILM"和"SHGUC 分到 HGUC"按同等错误算，但临床上：
+- SHGUC → NILM = **false negative**（漏诊，最严重）
+- SHGUC → HGUC = **false positive，同方向**（过诊，处置接近）
+- SHGUC → AUC = **降级 1 档**（处置接近）
 
-### P2 - Prompt 改写（cos > 0.97 同胞对）
-v1 fullnames 32 类的 prompt 与同胞 cosine 平均 0.93，最差 6 对 ≥ 0.97：
-- Urine-SHGUC ↔ Urine-Negative：0.983
+新指标：
+- **Screening AP**：positive (SHGUC/HGUC/AUC) vs negative — 反映"该看的能否被筛出来"
+- **Direction matrix**：positive 类内统计错分到"更严重 / 更轻 / 阴性"的比例 — 反映漏诊风险
+
+### P1 - Prompt 层级化
+配合类合并，prompt 强制阳性跟阴性共享前缀模式不同，让 cos(positive, negative) < cos(positive, positive)：
+```
+Negative class prompt 前缀：  "[Cytology negative for malignancy] - <subtype>"
+Positive class prompt 前缀：  "[Cytology positive, <Paris/Bethesda category>] - <type>"
+```
+最差 6 对 cos ≥ 0.97 必须 < 0.92：
+- Urine-SHGUC ↔ Urine-Negative：0.983 (合并阴性后自动消失)
 - Urine-AUC ↔ Urine-HGUC：0.973
 - Thyroid-NS ↔ Thyroid-PTC：0.972
 - respiratory-Lymphocyte ↔ respiratory-Neutrophil：0.980
 - Thyroid-AUC ↔ Thyroid-NS：0.969
 - TCT_CCD-asch ↔ TCT_CCD-hsil_scc_omn：0.964
 
-候选改写：参考各器官国际报告标准（PSC / Paris / Bethesda）重新写 prompt，每对要求 cos < 0.92。
+### P2 - 类不平衡损失加权
+合并阴性后正负比仍 ~25:1。试：
+- Focal loss γ > 0
+- Class-balanced sampling
+- Cls loss 对 positive 类加权 5×
 
-### P3 - 层级训练
-当前 dev32 是 32 类 flat softmax。考虑上 hier_v2（粗 organ → 细 lesion）层级训练，对 ASC-H/HSIL、AUC/NS/PTC 这种"语义嵌套"类应该明显有帮助。但需要先把 dataset provenance 修好。
+### P3 - TCT_CCD provenance 修复
+拿原始 path 信息做真正的 patient-disjoint split。在此之前 TCT_CCD 弱类 AP 数字不能用于泛化分析。
 
-### P4 - 小目标分支
-respiratory-Lymphocyte / Neutrophil 都是 p_small=1.0 全小目标，且 train_anns 5w+ 但 AP 仅 0.20-0.27。可以试 P3-only head 或 multi-scale test。
+### P4 - 数据扩增（按 train_anns < 2500 优先）
+做完 P0/P1/P2 之后再评估是否还需要扩。如果还需要：
+
+| 类 | 当前 train_anns | train_cases | 建议目标 |
+|---|---:|---:|---:|
+| Urine-AUC | 1640 | 85 | 5000 / 200 cases |
+| Urine-SHGUC | 1961 | 85 | 5000 / 200 cases |
+| Thyroid-NS | 8463 | **69** | case 数翻倍至 150 |
+
+### P5 - 层级训练
+当前 dev32 是 flat softmax。上 hier_v2（粗 organ → 细 lesion）层级训练，对 ASC-H/HSIL、AUC/NS/PTC 这种"语义嵌套"类应该有帮助。需要 P3 完成再做。
+
+### P6 - 小目标分支
+respiratory-Lymphocyte / Neutrophil 都是 p_small=1.0 全小目标，且 train_anns 5w+ 但 AP 仅 0.20-0.27。试 P3-only head 或 multi-scale test。
+
+---
+
+## §10 类层级设计问题（Class Taxonomy Issue）
+
+> **本节最重要的发现**：当前若干"低 AP 弱类"的低分**部分来自标注层级设计错误，而非纯模型问题**。改类映射不需要重新标注，但能直接拉高这些类的真实评估 mAP。
+
+### 10.1 现象：3 个 urine "阴性"类是冗余的
+
+dev32 urine 部分有 6 类，按 Paris System for Reporting Urinary Cytopathology 比对：
+
+| dev32 cat | dev32 名称 | train_anns | 临床类别 | Paris System |
+|---|---|---:|---|---|
+| 16 | Urine-NILM | 22773 | 阴性 | NHGUC |
+| 17 | Urine-Negative | 3001 | 阴性 | NHGUC |
+| 19 | Urine-AUC | 1640 | 不定性 | AUC |
+| 20 | Urine-Negative Degeneration | ~25k | 阴性（伴退变） | NHGUC |
+| 18 | Urine-SHGUC | 1961 | 可疑 | SHGUC |
+| 23 | Urine-HGUC | ~3k | 阳性恶性 | HGUC |
+
+**Paris System 把 NILM / Negative / Neg-Degen 都归为单一 NHGUC** —— dev32 把它们拆成 3 个独立类是**标注遗留，不是临床分型**。
+
+### 10.2 后果：阴性引力井把阳性类预测拉走
+
+3 个阴性子类合计 **~51 k train_anns**，互相 prompt cosine 也高（同共享"negative cytology"语义），形成"阴性引力井"：
+- prompt cos(SHGUC, Urine-Negative) = **0.983**
+- prompt cos(AUC, NILM) = 0.952
+- 模型对阳性类（仅 ~3 k SHGUC + 2 k AUC + 3 k HGUC）训练信号被淹没
+
+§7.4 那张 SHGUC 的 viz panel 直接验证这点：**真 SHGUC 0 检出，全图 14+ 个细胞被分到 Urine-NILM**。当前 mAP 把这 14 个 NILM 误检全部算成 SHGUC 的 false positive，但**临床上"细胞被认为无病变"对 NILM 是正确判断、对 SHGUC 才是错的**。两套口径混在一个 mAP 里。
+
+### 10.3 用户洞察：分类到 NILM 不算"分错"（部分情况下）
+
+引用本轮讨论中用户提出的关键观察：
+
+> "尿液似乎看你说是容易分类到错误的比如 NILM 样本上，但这个其实也是阴性的也是杂质"
+
+核心点：**NILM / Negative / Neg-Degen 三个类在临床决策层面是同一类**（都进入"无需进一步处理"通道）。当前 dev32 把它们拆开，等于让模型学习"无意义的细分"，浪费容量同时制造评估噪声。
+
+### 10.4 修法（不需要重新标注）
+
+只改 cat_id 映射 + prompt：
+
+```python
+# 旧
+cat 16 (NILM) / 17 (Negative) / 20 (Neg-Degen)
+# 新（合并到一个 cat_id）
+cat <new> "Urine-NHGUC"  # Paris System
+```
+
+工程链：
+1. 写 `tools/remap_dev32_categories.py`，输入 ann json，输出合并后的 ann json（cat_id 重新连号、prompt 减少）
+2. 重新跑 `tools/build_text_embeddings.py` 生成新 emb cache（dev27 / dev28）
+3. 重训 12 epoch（同 patient-disjoint split）
+4. 跑同样的 §B/§C/§D/§F/§G suite 比对
+
+**预期**：
+- Urine-SHGUC mAP 从 0.213/0.176 拉到 ~0.30+（不再被 NILM 引力井拖累）
+- Urine-AUC 同理
+- 整体 25 类 mAP 不掉，因为合并后类数减少但 ann 总量不变
+- 真正的 false negative（SHGUC 被分到合并 NHGUC）仍然计为错，没有掩盖问题
+
+### 10.5 类似可能合并的对（待验证）
+
+| 候选 | 是否合并 | 理由 |
+|---|---|---|
+| TCT_CCD-ec ↔ TCT_CCD-normal | **建议合并** | EC 是"看到了腺/转化区组分"标识，不是病灶；prompt cos 0.959 |
+| Thyroid-Negative samples ↔ Thyroid-Macrophages | 待验证 | Macrophages 在临床上是良性背景 |
+| Serous effusion-Negative samples | 暂保留 | 仅 1 个阴性类，无重复 |
+| respiratory-Impurity ↔ respiratory-Negative | 不存在 | 数据集只有 Impurity，无 explicit negative |
+
+### 10.6 §8 弱类卡的修订意义
+
+之前 §8.3 (Urine-SHGUC) 把根因归为"prompt cos 0.983"，建议是 prompt 改写。**§10 修正**：根因是**类层级把 SHGUC 跟一个由 3 个子类堆积的"阴性山"对比**。改 prompt 治标不治本，**改类层级才治本**。
+
+§8.8 (TCT_CCD-ec) 同理：根因是 EC 跟 normal 在临床上不是"两类"，行动应该是**合并或剔除评估**，而不是"改 prompt 让它跟 normal 区分开"。
+
+---
+
+## §11 Novel zero-shot 评估（v2 国际标准 prompts）
+
+**v2 prompts** = 国际标准报告语（PSC Category VI / MAL-S / Bethesda V/VI），落在 `data/texts/tct_ngc_novel_*.json`。这是 dev32 base 模型对**完全没见过的肿瘤类**做 zero-shot 检测的能力测试。
+
+### 11.1 4 个 novel split 数字
+
+| split | 类数 | mAP | mAP_50 | v1 placeholder mAP | 改善倍数 |
+|---|---:|---:|---:|---:|---:|
+| **main_3**（resp-SCC / Serous-Breast / Thyroid-MTC） | 3 | **0.154** | 0.205 | 0.012 | **12.8×** |
+| pseudo_2（resp-Adeno / Serous-Ovarian） | 2 | **0.125** | 0.189 | – | – |
+| hard_4（resp-SmallCell / Serous-Adeno / Bethesda V/VI） | 4 | **0.098** | 0.134 | – | – |
+| full_5（main_3 + pseudo_2 全部） | 5 | **0.075** | 0.107 | – | – |
+
+### 11.2 解读
+
+- **数字最好的是 main_3**（PSC 鳞癌 / MAL-S 转移乳腺癌 / Bethesda VI 甲状腺髓样癌）—— 三类都是 prompt 模板差异最大、视觉最独特的代表。`v1 → v2` 提升 12.8× 直接证明国际标准 prompt 对 zero-shot 至关重要。
+- **full_5 最低（0.075）** 因为它跟 main_3 共享部分类，且加入了 cos > 0.99 的同胞对（resp-Squamous-CC ↔ resp-Small-cell **0.996**，Serous-Ovarian ↔ Serous-Adeno **0.988**），高 prompt cos 直接拖低 mAP。这跟 §10 的 base 类问题同源 —— 同一组 prompt 互相争夺 visual capacity。
+- **hard_4 含 Bethesda V/VI**：这两个是甲状腺"可疑/恶性"等级，prompt 接近模型已见过的 Thyroid-AUC/SPTC，所以能给一定 AP（0.098）但不高。
+
+### 11.3 跟 base 评估的连贯性
+
+novel zero-shot 的失败模式跟 base 25 类完全一致：
+- prompt cosine ≥ 0.97 → 视觉容量被分散 → 单类 AP 低
+- 阴性 vs 阳性区分能力 → 跟 §10 的 NHGUC 问题同根源
+- novel 各 split 跟 base 用同一个 v2 prompt 模板设计原则，所以 §10 的"prompt 层级化"建议同样适用 novel
+
+### 11.4 caveat
+
+memory `feedback_novel_prompts_pending.md` 里详细记录了 v2 prompts 仍有 6 对 within-organ cos ≥ 0.97（如 resp-Squamous-CC ↔ resp-Small-cell 0.996），这是国际标准前缀（"PSC Category VI: Malignant"）共享导致的结构性约束 —— 没办法在保留标准措辞的前提下完全解开。novel 评估数字应在此 caveat 下解读。
 
 ---
 
@@ -396,24 +591,7 @@ respiratory-Lymphocyte / Neutrophil 都是 p_small=1.0 全小目标，且 train_
 - `viz_val_clean/20_Urine-Negative_Degeneration/`
 - `viz_val_clean/22_TCT_CCD-normal/`
 
-不计入主指标。
-
-## 附录 A2：4 个 novel split zero-shot 评估（v2 prompts）
-
-**v2 prompts** = 国际标准报告语（PSC Category VI / MAL-S / Bethesda V/VI），落在 `data/texts/tct_ngc_novel_*.json`。
-
-| split | 类数 | mAP | mAP_50 | v1 placeholder mAP（对照） | 改善倍数 |
-|---|---:|---:|---:|---:|---:|
-| main_3（resp-SCC / Serous-breast / Thyroid-MTC） | 3 | **0.154** | 0.205 | 0.012 | **12.8×** |
-| pseudo_2（resp-AC / Serous-Ovarian） | 2 | **0.125** | 0.189 | – | – |
-| hard_4（resp-SmallCell / Serous-AC / Bethesda V/VI） | 4 | **0.098** | 0.134 | – | – |
-| full_5（main_3 + pseudo_2 全部） | 5 | **0.075** | 0.107 | – | – |
-
-数字最好的是 main_3（含 PSC 鳞癌、MAL-S 转移乳腺癌、Bethesda VI 甲状腺髓样癌 — 三类都是 prompt 模板差异最大、视觉最独特）。
-
-full_5 最低（0.075）是因为它跟 main_3 共享部分类，但加入了 cos>0.99 的同胞对（resp-Squamous-CC ↔ resp-Small-cell 0.996，Serous-Ovarian ↔ Serous-Adeno 0.988），高 prompt 相似度直接拖低 mAP。
-
-详见 memory `feedback_novel_prompts_pending.md` 关于 v2 prompts 6 个 cos≥0.97 within-organ 对的 caveat。
+不计入主指标。**§10 提议把 16/17/20 合并为单一 Urine-NHGUC，把 22 跟 31 (ec) 合并** —— 该提议落地后此附录的存在意义大幅缩小。
 
 ---
 
