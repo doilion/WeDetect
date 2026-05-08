@@ -106,6 +106,27 @@ def main() -> None:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--seed", type=int, default=20260429)
     parser.add_argument("--amp", action="store_true")
+    parser.add_argument(
+        "--data-root",
+        default=None,
+        help="override cfg.data_root (e.g. /home1/liwenjie/TCT_NGC/ for test_base viz)",
+    )
+    parser.add_argument(
+        "--ann-file",
+        default=None,
+        help="override the COCO annotation path (relative to --data-root if not absolute); "
+        "swaps the source for both GT iteration and image lookup",
+    )
+    parser.add_argument(
+        "--out-label",
+        default="val",
+        help="written into manifest.json as `source` so val/test viz can be told apart",
+    )
+    parser.add_argument(
+        "--class-regex",
+        default=None,
+        help="if set, only categories whose name matches this regex (re.search) are visualized",
+    )
     args = parser.parse_args()
 
     register_all_modules()
@@ -113,9 +134,18 @@ def main() -> None:
     model = init_detector(cfg, args.checkpoint, device=args.device)
     test_pipeline = Compose(cfg.test_pipeline)
 
-    ann_path = Path(cfg.val_evaluator.ann_file)
-    data_root = Path(cfg.val_dataloader.dataset.dataset.data_root)
+    cfg_data_root = Path(cfg.val_dataloader.dataset.dataset.data_root)
+    data_root = Path(args.data_root) if args.data_root else cfg_data_root
     image_prefix = data_root / cfg.val_dataloader.dataset.dataset.data_prefix["img"]
+
+    if args.ann_file:
+        ann_arg = Path(args.ann_file)
+        ann_path = ann_arg if ann_arg.is_absolute() else data_root / ann_arg
+    else:
+        ann_path = Path(cfg.val_evaluator.ann_file)
+
+    class_regex = re.compile(args.class_regex) if args.class_regex else None
+
     coco = json.loads(ann_path.read_text(encoding="utf-8"))
 
     categories = sorted(coco["categories"], key=lambda item: item["id"])
@@ -136,6 +166,8 @@ def main() -> None:
     manifest = []
 
     for cat in categories:
+        if class_regex and not class_regex.search(cat["name"]):
+            continue
         image_ids = sorted(image_ids_by_cat[cat["id"]])
         if not image_ids:
             continue
@@ -175,8 +207,18 @@ def main() -> None:
             )
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    manifest_obj = {
+        "source": args.out_label,
+        "data_root": str(data_root),
+        "ann_file": str(ann_path),
+        "checkpoint": args.checkpoint,
+        "score_thr": args.score_thr,
+        "samples_per_class": args.samples_per_class,
+        "class_regex": args.class_regex,
+        "samples": manifest,
+    }
     (out_dir / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps(manifest_obj, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(f"wrote {len(manifest)} visualizations to {out_dir}")
 
