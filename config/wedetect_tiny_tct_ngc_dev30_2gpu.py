@@ -1,7 +1,10 @@
 _base_ = ["default_runtime.py"]
 
-# Bump dist watchdog timeout from default 30 min to 3 h (10800 s). MMEngine
-# reads this under env_cfg; a top-level dist_cfg would be ignored.
+# Bump dist watchdog timeout from default 30 min to 3 h (10800 s). Ep1 val
+# COCOeval over 30 classes × ~13K val images takes ~35 min on rank 0; rank 1
+# was timing out in post-eval BROADCAST under the default. mmengine 0.10.7
+# expects int seconds here, not timedelta. The previous top-level
+# `dist_cfg = ...` outside env_cfg was dead — mmengine only reads env_cfg.
 env_cfg = dict(
     dist_cfg=dict(backend="nccl", timeout=10800),
 )
@@ -10,9 +13,12 @@ env_cfg = dict(
 data_root = "/home1/liwenjie/TCT_NGC/"
 train_ann_file = "annotations/instances_train_dev.json"
 val_ann_file = "annotations/instances_val_dev.json"
-train_class_text_path = "data/texts/tct_ngc_fullnames_32.json"
+train_class_text_path = "data/texts/tct_ngc_fullnames_30.json"
 test_class_text_path = train_class_text_path
 
+# dev30: Urine NILM (16) / Negative (17) / Negative Degeneration (20) merged
+# into a single Urine-NHGUC (Paris System NHGUC). 32 → 30 classes; cat_ids
+# now contiguous [0..29]. See tools/remap_dev32_to_dev30.py for the mapping.
 base_classes = (
     "respiratory tract-Neutrophil",
     "respiratory tract-Alveolar macrophages",
@@ -30,11 +36,9 @@ base_classes = (
     "Thyroid gland-AUC",
     "Thyroid gland-Negative samples",
     "Thyroid gland-FC",
-    "Urine-NILM",
-    "Urine-Negative",
+    "Urine-NHGUC",
     "Urine-SHGUC",
     "Urine-AUC",
-    "Urine-Negative Degeneration",
     "Urine-HGUC",
     "TCT_CCD-normal",
     "TCT_CCD-ascus",
@@ -51,8 +55,8 @@ base_classes = (
 all_classes = base_classes
 dataset_metainfo = dict(classes=base_classes)
 
-num_classes = 32
-num_training_classes = 32
+num_classes = 30
+num_training_classes = 30
 max_epochs = 12
 close_mosaic_epochs = 2
 save_epoch_intervals = 1
