@@ -73,6 +73,11 @@ def main():
                         help='persist predictions to <prefix>.bbox.json (passes through '
                              'to val_evaluator.outfile_prefix; survives the evaluator '
                              'rebuild done by --exclude-negative)')
+    parser.add_argument('--exclude-class-names', default=None,
+                        help='comma-separated class names that REPLACE the default '
+                             'NEGATIVE_CLASS_NAMES list. Use for dev30 where the '
+                             "default has stale entries like 'Urine-NILM' that no "
+                             "longer exist after the urine 3-阴性 merge.")
     args = parser.parse_args()
 
     # Load config
@@ -91,13 +96,20 @@ def main():
         cfg.val_dataloader.dataset.dataset.ann_file = args.ann_file
         refresh_evaluator_ann_file(cfg)
 
+    # Resolve which negative classes to exclude — default vs CLI override.
+    exclude_names = NEGATIVE_CLASS_NAMES
+    if args.exclude_class_names:
+        exclude_names = [
+            n.strip() for n in args.exclude_class_names.split(',') if n.strip()
+        ]
+
     # Modify evaluator to use ExcludeClassCocoMetric
     if args.exclude_negative:
         cfg.val_evaluator = dict(
             type='ExcludeClassCocoMetric',
             ann_file=cfg.val_evaluator.ann_file,
             metric='bbox',
-            exclude_class_id=NEGATIVE_CLASS_NAMES,  # 排除负样本类别
+            exclude_class_id=exclude_names,  # 排除负样本类别
             classwise=True,
         )
         cfg.test_evaluator = cfg.val_evaluator
