@@ -83,7 +83,7 @@ def main() -> None:
     # 3) Override dataloader for the novel split
     novel_metainfo = dict(classes=classes)
     cfg.test_dataloader = dict(
-        batch_size=4,
+        batch_size=16,
         num_workers=4,
         persistent_workers=True,
         pin_memory=True,

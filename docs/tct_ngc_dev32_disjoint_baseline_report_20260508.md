@@ -561,22 +561,82 @@ cat <new> "Urine-NHGUC"  # Paris System
 | hard_4（resp-SmallCell / Serous-Adeno / Bethesda V/VI） | 4 | **0.098** | 0.134 | – | – |
 | full_5（main_3 + pseudo_2 全部） | 5 | **0.075** | 0.107 | – | – |
 
-### 11.2 解读
+### 11.2 单类 AP 明细（来自每个 split 的 eval log）
 
-- **数字最好的是 main_3**（PSC 鳞癌 / MAL-S 转移乳腺癌 / Bethesda VI 甲状腺髓样癌）—— 三类都是 prompt 模板差异最大、视觉最独特的代表。`v1 → v2` 提升 12.8× 直接证明国际标准 prompt 对 zero-shot 至关重要。
-- **full_5 最低（0.075）** 因为它跟 main_3 共享部分类，且加入了 cos > 0.99 的同胞对（resp-Squamous-CC ↔ resp-Small-cell **0.996**，Serous-Ovarian ↔ Serous-Adeno **0.988**），高 prompt cos 直接拖低 mAP。这跟 §10 的 base 类问题同源 —— 同一组 prompt 互相争夺 visual capacity。
-- **hard_4 含 Bethesda V/VI**：这两个是甲状腺"可疑/恶性"等级，prompt 接近模型已见过的 Thyroid-AUC/SPTC，所以能给一定 AP（0.098）但不高。
+#### main_3（3 类）
 
-### 11.3 跟 base 评估的连贯性
+| 类（v2 prompt） | mAP | mAP_50 | mAP_75 | 解读 |
+|---|---:|---:|---:|---|
+| respiratory tract-Squamous cell carcinoma<br>`PSC Category VI: Malignant — Squamous cell carcinoma` | 0.004 | 0.005 | 0.005 | **几乎 0**。base 端已有 7 个 respiratory 类（Neutrophil/Alveolar mac/Ciliated/Lymphocyte/Impurity/Squamous epithelial/Diseased cells），prompt 余弦空间饱和；"squamous cell carcinoma" 的视觉特征跟 `respiratory tract-Squamous epithelial cells`（cos ≈ 0.97+）撞车 |
+| Serous effusion-Breast cancer<br>`MAL-S: Metastatic breast carcinoma` | **0.454** | **0.606** | 0.528 | **支撑整个 split 的唯一类**。Serous effusion base 只有 2 个类（Negative/Diseased），prompt 空间宽，"Breast carcinoma" 措辞与基础类冲突小，模型直接迁移 |
+| Thyroid gland-MTC（髓样癌）<br>`Medullary thyroid carcinoma (Bethesda VI: Malignant)` | 0.004 | 0.005 | 0.005 | **几乎 0**。Thyroid base 已有 7 类（PTC/SPTC/NS/Macrophages/AUC/Neg/FC），MTC 跟 PTC/SPTC 视觉同源（甲状腺癌都长得像），prompt cos 高，被 base 类吃掉 |
+
+→ main_3 的 0.154 mAP 完全靠 Serous-Breast 一枝独秀拉起来的（0.454 / 3 = 0.151）。
+
+![main_3 per-class AP](figures/disjoint_baseline_20260508/novel_plots/novel_main_3_classwise.png)
+
+#### pseudo_2（2 类）
+
+| 类 | mAP | mAP_50 | mAP_75 | 解读 |
+|---|---:|---:|---:|---|
+| respiratory tract-Adenocarcinoma<br>`PSC Category VI: Malignant — Adenocarcinoma` | 0.069 | 0.091 | 0.079 | 比 SCC 略好，可能因为 "Adenocarcinoma" 的标准前缀在 PSC 里出现频率高，文本嵌入更稳定；但仍卡在 base 7-respiratory-class 的同语义引力井里 |
+| Serous effusion-Ovarian cancer<br>`MAL-S: Metastatic ovarian carcinoma` | 0.181 | 0.288 | 0.202 | 又是 Serous 类强。但比 Breast cancer 低 0.27 pp —— "Ovarian" 这个 prompt 训练分布里出现少，cos 与 Serous-Diseased base 类有 0.96+ 重叠 |
+
+→ pseudo_2 的 0.125 = (0.069 + 0.181) / 2，符合算术平均。
+
+![pseudo_2 per-class AP](figures/disjoint_baseline_20260508/novel_plots/novel_pseudo_2_classwise.png)
+
+#### hard_4（4 类，含 2 个 Bethesda 等级）
+
+| 类 | mAP | mAP_50 | mAP_75 | 解读 |
+|---|---:|---:|---:|---|
+| respiratory tract-Small cell carcinoma<br>`PSC Category VI: Malignant — Small cell carcinoma` | **0.000** | 0.000 | 0.000 | **全 0**。"Small cell" 跟 main_3 的 SCC（Squamous-cell-carcinoma）prompt cos = **0.996**（同义词竞争），加上 base resp-Lymphocyte（小细胞形态）vis 上又像，三角夹击全模型混淆 |
+| Serous effusion-Adenocarcinoma<br>`MAL-S: Metastatic adenocarcinoma` | **0.390** | **0.536** | 0.491 | **支撑整个 split**。又是 Serous 强势。0.39 比同 split 的 Breast 0.454 略低，可能因 "adenocarcinoma" 比 "breast" 更通用 |
+| Thyroid gland-Suspicious for Malignancy<br>`Suspicious for malignancy (Bethesda V)` | **0.000** | 0.000 | 0.000 | **全 0**。Bethesda V 的"可疑"措辞与 base `Thyroid gland-AUC`（atypical）prompt cos > 0.97；且训练时模型从未学过"可疑"这个抽象等级，只学过具体细胞形态 |
+| Thyroid gland-Malignant tumour<br>`Malignant (Bethesda VI)` | **0.000** | 0.000 | 0.000 | **全 0**。Bethesda VI 的纯通用"Malignant"措辞泛化到所有 base Thyroid 阳性类（PTC/SPTC/FC），prompt cos 全 ≥ 0.95，模型不知道该指向哪个 |
+
+→ hard_4 的 0.098 mAP 完全靠 Serous-Adenocarcinoma 一枝独秀（0.390 / 4 = 0.0975）；3 个非-Serous 类**全部归零**。
+
+![hard_4 per-class AP](figures/disjoint_baseline_20260508/novel_plots/novel_hard_4_classwise.png)
+
+#### full_5（main_3 + pseudo_2，5 类同时评估）
+
+| 类 | mAP | mAP_50 | 跟单 split 相比 |
+|---|---:|---:|---|
+| respiratory tract-Adenocarcinoma | 0.036 | 0.048 | **−0.033**（pseudo_2: 0.069）|
+| Serous effusion-Ovarian cancer | 0.141 | 0.225 | **−0.040**（pseudo_2: 0.181）|
+| respiratory tract-Squamous cell carcinoma | 0.002 | 0.003 | −0.002（main_3: 0.004，本来就 ~0）|
+| Serous effusion-Breast cancer | 0.190 | 0.251 | **−0.264**（main_3: 0.454）⚠ |
+| Thyroid gland-MTC | 0.004 | 0.005 | 0.000（main_3: 0.004）|
+
+→ **full_5 最关键发现**：把 main_3 + pseudo_2 一起评估，Serous-Breast 从 0.454 跳水到 0.190（−58%）。原因：full_5 加入了 Serous-Ovarian + Serous-Adeno 后，**Serous effusion 一个组织里有 4 个 v2 novel prompt 互相竞争**（Diseased base + Breast + Ovarian + Adeno），prompt cos 互相之间都 > 0.95，单个类的 visual capacity 被瓜分。这是 §10 "prompt cos 拥挤"假设在 zero-shot 上的直接证据。
+
+![full_5 per-class AP](figures/disjoint_baseline_20260508/novel_plots/novel_full_5_classwise.png)
+
+### 11.3 跨组织模式总结
+
+| 组织 | base 类数 | novel 测得最强 | novel 测得最弱 | 模式 |
+|---|---:|---|---|---|
+| Respiratory tract | 7 | Adenocarcinoma 0.069（pseudo_2） | SCC 0.004 / SmallCell 0.000 | 7 类已饱和，新类挤不进去 |
+| Serous effusion | 2 | Breast 0.454（main_3）/ Adeno 0.390（hard_4）| Ovarian 0.141（full_5）| 唯一支撑 zero-shot 性能的组织；prompt 空间宽 |
+| Thyroid gland | 7 | （所有 0）| MTC 0.004 / Bethesda V/VI 0.000 | 7 类饱和 + Bethesda 通用措辞泛化失败 |
+
+**核心观察**：novel zero-shot 的成败 **只取决于该组织的 base prompt 余弦空间是否拥挤**。Respiratory + Thyroid 已经被 base 7 类塞满了，加新类完全没希望；Serous 只有 2 个 base 类，留出空间，所以 zero-shot 立得住。
+
+### 11.4 跟 base 评估的连贯性
 
 novel zero-shot 的失败模式跟 base 25 类完全一致：
-- prompt cosine ≥ 0.97 → 视觉容量被分散 → 单类 AP 低
+- prompt cosine ≥ 0.97 → 视觉容量被分散 → 单类 AP 低（hard_4 的 SCC ↔ SmallCell cos 0.996 直接归零）
 - 阴性 vs 阳性区分能力 → 跟 §10 的 NHGUC 问题同根源
-- novel 各 split 跟 base 用同一个 v2 prompt 模板设计原则，所以 §10 的"prompt 层级化"建议同样适用 novel
+- 通用 Bethesda 等级措辞（"Malignant" / "Suspicious"）泛化到所有同组织阳性类，**该问题在 zero-shot 上比 base 上还严重**（base 类至少有训练样本撑着）
 
-### 11.4 caveat
+→ §10 的"prompt 层级化"建议同样适用 novel；具体地：
+- **不要**在 v2 里用纯通用措辞（"Malignant" / "Suspicious"）当作可识别类，至少要带组织+形态描述（已部分做了，但 Bethesda V/VI 没做到）
+- novel 评估应该**按组织拆分报告数字**，不要平均跨组织：Serous-only zero-shot 实际上能用（0.39-0.45），respiratory/thyroid zero-shot 不能用（< 0.07）
 
-memory `feedback_novel_prompts_pending.md` 里详细记录了 v2 prompts 仍有 6 对 within-organ cos ≥ 0.97（如 resp-Squamous-CC ↔ resp-Small-cell 0.996），这是国际标准前缀（"PSC Category VI: Malignant"）共享导致的结构性约束 —— 没办法在保留标准措辞的前提下完全解开。novel 评估数字应在此 caveat 下解读。
+### 11.5 caveat
+
+memory `feedback_novel_prompts_pending.md` 里详细记录了 v2 prompts 仍有 6 对 within-organ cos ≥ 0.97（如 resp-Squamous-CC ↔ resp-Small-cell 0.996，Bethesda V ↔ Thyroid-AUC 0.97+），这是国际标准前缀（"PSC Category VI: Malignant"）共享导致的结构性约束 —— 没办法在保留标准措辞的前提下完全解开。novel 评估数字应在此 caveat 下解读。
 
 ---
 

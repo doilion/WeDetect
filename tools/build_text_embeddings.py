@@ -13,9 +13,15 @@ from wedetect.models.backbones.mm_backbone import XLMRobertaLanguageBackbone
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build cached text embeddings for PseudoLanguageBackbone."
+        description="Build cached text embeddings for PseudoLanguageBackbone. "
+        "Supports CLIP-style prompt ensembling (CuPL, Pratt et al. 2023) when "
+        "the input JSON has multiple variants per class — each variant is "
+        "encoded separately and averaged into a single per-class embedding "
+        "stored under the first variant's text key. Optional anisotropy "
+        "reduction (Mu et al. 2017, 'all-but-the-top') subtracts the global "
+        "class-mean before saving."
     )
-    parser.add_argument("--texts", required=True, help="Class text JSON file.")
+    parser.add_argument("--texts", required=True, help="Class text JSON file (list-of-lists; inner list = variants for one class).")
     parser.add_argument("--out", required=True, help="Output .pth file.")
     parser.add_argument(
         "--checkpoint",
@@ -25,6 +31,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-name", default="./xlm-roberta-base/")
     parser.add_argument("--model-size", default="tiny")
     parser.add_argument("--device", default="cpu")
+    parser.add_argument(
+        "--per-variant-l2-norm",
+        action="store_true",
+        help="L2-normalize each variant embedding before within-class averaging "
+        "(standard CLIP zero-shot recipe; reduces dominance of high-norm "
+        "variants). Only meaningful when inner lists have >1 variant.",
+    )
+    parser.add_argument(
+        "--anisotropy-reduce",
+        action="store_true",
+        help="After per-class averaging, subtract the mean class embedding from "
+        "every class and L2-normalize. Targets the well-known anisotropy of "
+        "transformer text-embedding spaces where a shared component dominates "
+        "cosine similarity (Mu et al. 2017; Ethayarajh 2019).",
+    )
     return parser.parse_args()
 
 
@@ -72,10 +93,47 @@ def main() -> None:
     with torch.no_grad():
         embeddings = model([texts]).squeeze(0).detach().cpu().float()
 
-    embed_dict = {
-        text: embeddings[index].contiguous()
-        for index, text in enumerate(texts)
-    }
+    has_ensemble = any(len(grp) > 1 for grp in text_groups)
+    if not has_ensemble:
+        # Single-variant-per-class: keep the legacy {text: embed} mapping.
+        embed_dict = {
+            text: embeddings[idx].contiguous()
+            for idx, text in enumerate(texts)
+        }
+        out_per_class = embeddings
+    else:
+        # CuPL / CLIP-style ensembling: per-class average over variants.
+        # Optionally L2-normalize each variant before averaging (standard
+        # CLIP zero-shot recipe).
+        cursor = 0
+        per_class_vecs = []
+        primary_keys = []
+        for group_idx, group in enumerate(text_groups):
+            grp_embs = embeddings[cursor : cursor + len(group)]
+            cursor += len(group)
+            if args.per_variant_l2_norm:
+                grp_embs = torch.nn.functional.normalize(grp_embs, p=2, dim=-1)
+            class_vec = grp_embs.mean(dim=0)
+            per_class_vecs.append(class_vec)
+            primary_keys.append(group[0])
+        out_per_class = torch.stack(per_class_vecs, dim=0)
+
+        if args.anisotropy_reduce:
+            global_mean = out_per_class.mean(dim=0, keepdim=True)
+            out_per_class = out_per_class - global_mean
+            out_per_class = torch.nn.functional.normalize(out_per_class, p=2, dim=-1)
+
+        embed_dict = {
+            primary_keys[i]: out_per_class[i].contiguous()
+            for i in range(len(primary_keys))
+        }
+        n_variants = sum(len(grp) for grp in text_groups)
+        n_classes = len(text_groups)
+        print(
+            f"[ensemble] averaged {n_variants} variants across {n_classes} classes "
+            f"(per-variant-l2-norm={args.per_variant_l2_norm}, "
+            f"anisotropy-reduce={args.anisotropy_reduce})"
+        )
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
