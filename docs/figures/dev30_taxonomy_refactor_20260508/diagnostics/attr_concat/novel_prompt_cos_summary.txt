@@ -1,0 +1,36 @@
+# Novel prompt cosine diagnostic (XLM-Roberta @ wedetect_tiny.pth)
+# threshold = 0.95
+
+## Novel ↔ Novel (cross-class collisions)
+  0.971  [tct_ngc_attr_concat] Serous effusion-Ovarian cancer  ↔  [tct_ngc_attr_concat] Serous effusion-Breast cancer  ⚠ COLLISION
+  0.969  [tct_ngc_attr_concat] respiratory tract-adenocarcinoma  ↔  [tct_ngc_attr_concat] respiratory tract-Squamous cell carc  ⚠ COLLISION
+  0.967  [tct_ngc_attr_concat] Thyroid gland-Suspicious for Maligna  ↔  [tct_ngc_attr_concat] Thyroid gland-Malignant tumour  ⚠ COLLISION
+  0.967  [tct_ngc_attr_concat] Serous effusion-Breast cancer  ↔  [tct_ngc_attr_concat] Serous effusion-adenocarcinoma  ⚠ COLLISION
+  0.964  [tct_ngc_attr_concat] Serous effusion-Ovarian cancer  ↔  [tct_ngc_attr_concat] Serous effusion-adenocarcinoma  ⚠ COLLISION
+  0.964  [tct_ngc_attr_concat] respiratory tract-Squamous cell carc  ↔  [tct_ngc_attr_concat] respiratory tract-Small cell carcino  ⚠ COLLISION
+  0.956  [tct_ngc_attr_concat] Thyroid gland-MTC  ↔  [tct_ngc_attr_concat] Thyroid gland-Malignant tumour  ⚠ COLLISION
+  0.955  [tct_ngc_attr_concat] respiratory tract-adenocarcinoma  ↔  [tct_ngc_attr_concat] respiratory tract-Small cell carcino  ⚠ COLLISION
+  0.948  [tct_ngc_attr_concat] Thyroid gland-MTC  ↔  [tct_ngc_attr_concat] Thyroid gland-Suspicious for Maligna  
+  0.940  [tct_ngc_attr_concat] respiratory tract-adenocarcinoma  ↔  [tct_ngc_attr_concat] Serous effusion-Breast cancer  
+  0.937  [tct_ngc_attr_concat] respiratory tract-adenocarcinoma  ↔  [tct_ngc_attr_concat] Serous effusion-adenocarcinoma  
+  0.936  [tct_ngc_attr_concat] respiratory tract-Squamous cell carc  ↔  [tct_ngc_attr_concat] Serous effusion-adenocarcinoma  
+  0.935  [tct_ngc_attr_concat] respiratory tract-adenocarcinoma  ↔  [tct_ngc_attr_concat] Thyroid gland-MTC  
+  0.935  [tct_ngc_attr_concat] respiratory tract-Squamous cell carc  ↔  [tct_ngc_attr_concat] Serous effusion-Breast cancer  
+  0.933  [tct_ngc_attr_concat] respiratory tract-adenocarcinoma  ↔  [tct_ngc_attr_concat] Thyroid gland-Malignant tumour  
+
+## Novel ↔ Base (most-similar base class for each novel)
+  0.955  [tct_ngc_attr_concat] respiratory tract-adenocarcinoma  →  [base] respiratory tract-Neutrophil  ⚠ COLLISION
+  0.953  [tct_ngc_attr_concat] Serous effusion-Ovarian cancer  →  [base] Serous effusion-Negative samples  ⚠ COLLISION
+  0.958  [tct_ngc_attr_concat] respiratory tract-Squamous cell carc  →  [base] respiratory tract-Squamous epithelia  ⚠ COLLISION
+  0.959  [tct_ngc_attr_concat] Serous effusion-Breast cancer  →  [base] Serous effusion-Negative samples  ⚠ COLLISION
+  0.973  [tct_ngc_attr_concat] Thyroid gland-MTC  →  [base] Thyroid gland-PTC  ⚠ COLLISION
+  0.948  [tct_ngc_attr_concat] respiratory tract-Small cell carcino  →  [base] respiratory tract-Alveolar macrophag  
+  0.969  [tct_ngc_attr_concat] Serous effusion-adenocarcinoma  →  [base] Serous effusion-Negative samples  ⚠ COLLISION
+  0.965  [tct_ngc_attr_concat] Thyroid gland-Suspicious for Maligna  →  [base] Thyroid gland-SPTC  ⚠ COLLISION
+  0.952  [tct_ngc_attr_concat] Thyroid gland-Malignant tumour  →  [base] Thyroid gland-PTC  ⚠ COLLISION
+
+## Decision flag
+  novel↔novel max off-diagonal cos  : 0.971
+  novel↔base   max cos              : 0.973
+  → fine-grained novel pairs are >0.90: **text encoder is bottleneck**.
+    Recommended: TODO.md item 15 (BiomedCLIP / PubMedBERT swap).

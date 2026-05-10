@@ -1,0 +1,36 @@
+# Novel prompt cosine diagnostic (XLM-Roberta @ wedetect_tiny.pth)
+# threshold = 0.95
+
+## Novel ↔ Novel (cross-class collisions)
+  0.996  [main_3] Squamous cell carcinoma  ↔  [hard_4] Small cell carcinoma  ⚠ COLLISION
+  0.988  [pseudo_2] Metastatic ovarian carcinoma  ↔  [hard_4] Metastatic adenocarcinoma  ⚠ COLLISION
+  0.985  [main_3] Squamous cell carcinoma  ↔  [pseudo_2] Adenocarcinoma  ⚠ COLLISION
+  0.979  [pseudo_2] Adenocarcinoma  ↔  [hard_4] Small cell carcinoma  ⚠ COLLISION
+  0.975  [main_3] Metastatic breast carcinoma  ↔  [pseudo_2] Metastatic ovarian carcinoma  ⚠ COLLISION
+  0.971  [main_3] Metastatic breast carcinoma  ↔  [hard_4] Metastatic adenocarcinoma  ⚠ COLLISION
+  0.960  [main_3] Squamous cell carcinoma  ↔  [pseudo_2] Metastatic ovarian carcinoma  ⚠ COLLISION
+  0.957  [pseudo_2] Metastatic ovarian carcinoma  ↔  [hard_4] Small cell carcinoma  ⚠ COLLISION
+  0.955  [main_3] Squamous cell carcinoma  ↔  [hard_4] Metastatic adenocarcinoma  ⚠ COLLISION
+  0.954  [pseudo_2] Adenocarcinoma  ↔  [pseudo_2] Metastatic ovarian carcinoma  ⚠ COLLISION
+  0.954  [main_3] Squamous cell carcinoma  ↔  [main_3] Metastatic breast carcinoma  ⚠ COLLISION
+  0.952  [main_3] Metastatic breast carcinoma  ↔  [hard_4] Small cell carcinoma  ⚠ COLLISION
+  0.952  [pseudo_2] Adenocarcinoma  ↔  [hard_4] Metastatic adenocarcinoma  ⚠ COLLISION
+  0.951  [hard_4] Small cell carcinoma  ↔  [hard_4] Metastatic adenocarcinoma  ⚠ COLLISION
+  0.944  [main_3] Medullary thyroid carcinoma (Bethesd  ↔  [pseudo_2] Adenocarcinoma  
+
+## Novel ↔ Base (most-similar base class for each novel)
+  0.962  [main_3] Squamous cell carcinoma  →  [base] Serous fluid cytology - Negative for  ⚠ COLLISION
+  0.934  [main_3] Metastatic breast carcinoma  →  [base] Cervical cytology - Negative for int  
+  0.967  [main_3] Medullary thyroid carcinoma (Bethesd  →  [base] Thyroid cytopathology - Papillary th  ⚠ COLLISION
+  0.951  [pseudo_2] Adenocarcinoma  →  [base] Cervical cytology - Negative for int  ⚠ COLLISION
+  0.946  [pseudo_2] Metastatic ovarian carcinoma  →  [base] Serous fluid cytology - Atypical, su  
+  0.959  [hard_4] Small cell carcinoma  →  [base] Cervical cytology - Negative for int  ⚠ COLLISION
+  0.946  [hard_4] Metastatic adenocarcinoma  →  [base] Serous fluid cytology - Atypical, su  
+  0.914  [hard_4] Suspicious for malignancy (Bethesda   →  [base] Thyroid cytopathology - Benign (Beth  
+  0.882  [hard_4] Malignant (Bethesda VI)  →  [base] Thyroid cytopathology - Benign (Beth  
+
+## Decision flag
+  novel↔novel max off-diagonal cos  : 0.996
+  novel↔base   max cos              : 0.967
+  → fine-grained novel pairs are >0.90: **text encoder is bottleneck**.
+    Recommended: TODO.md item 15 (BiomedCLIP / PubMedBERT swap).
