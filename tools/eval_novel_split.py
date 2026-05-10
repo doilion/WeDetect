@@ -35,6 +35,11 @@ def parse() -> argparse.Namespace:
     p.add_argument("--text-json", required=True)
     p.add_argument("--text-emb", required=True)
     p.add_argument("--work-dir", required=True)
+    p.add_argument(
+        "--outfile-prefix",
+        default=None,
+        help="persist predictions to <prefix>.bbox.json for later score fusion",
+    )
     return p.parse_args()
 
 
@@ -69,8 +74,31 @@ def main() -> None:
     cfg = Config.fromfile(args.config)
     cfg.load_from = resolve_latest_checkpoint(args.checkpoint, cfg.work_dir)
 
-    # 1) Point text encoder at the novel cached embeddings
-    cfg.model.backbone.text_model.text_embed_path = args.text_emb
+    # 0) Refuse to run on THAF configs — replacing the text_model with a
+    # PseudoLanguageBackbone (step 1 below) would silently discard the
+    # trained cross-attention fusion module weights and produce wrong
+    # numbers. THAF eval has its own tool that preserves the fusion module.
+    text_model_type = cfg.model.backbone.text_model.get("type", "")
+    if "Hierarchical" in text_model_type:
+        raise SystemExit(
+            f"text_model type {text_model_type!r} is a THAF backbone with a "
+            f"trained fusion module. Replacing it with PseudoLanguageBackbone "
+            f"would discard those weights and yield bogus mAP. Use "
+            f"tools/eval_novel_thaf.py instead (no --text-emb arg; the "
+            f"trained backbone reads its own attr_emb_cache_path)."
+        )
+
+    # 1) Replace text_model with PseudoLanguageBackbone backed by the novel
+    # cached embeddings. We do a full replacement (rather than only overriding
+    # text_embed_path) because the training config may specify a different
+    # backbone family (e.g. PseudoHierarchicalBiomedCLIPLanguageBackbone for
+    # THAF) whose constructor doesn't accept `text_embed_path`. The eval
+    # cache stores per-class fused vectors keyed by class_name (or by prompt
+    # string), which PseudoLanguageBackbone consumes natively.
+    cfg.model.backbone.text_model = dict(
+        type="PseudoLanguageBackbone",
+        text_embed_path=args.text_emb,
+    )
 
     # 2) Resize test-time class count
     cfg.model.num_test_classes = n_classes
@@ -112,6 +140,8 @@ def main() -> None:
         metric="bbox",
         classwise=True,
     )
+    if args.outfile_prefix:
+        cfg.test_evaluator["outfile_prefix"] = args.outfile_prefix
 
     cfg.work_dir = args.work_dir
 
