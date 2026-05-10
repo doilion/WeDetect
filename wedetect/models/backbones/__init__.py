@@ -11,6 +11,14 @@ from .mm_backbone import (
     ConvNextVisionBackbone,
     HuggingCLIPVisionBackbone,
     )
+from .hierarchical_mm_backbone import (
+    HierarchicalXLMRLanguageBackbone,
+    PseudoHierarchicalXLMRLanguageBackbone,
+)
+from .biomedclip_backbone import (
+    HierarchicalBiomedCLIPLanguageBackbone,
+    PseudoHierarchicalBiomedCLIPLanguageBackbone,
+)
 
 __all__ = [
     'MultiModalYOLOBackbone',
@@ -20,4 +28,8 @@ __all__ = [
     'ConvNextVisionBackbone',
     'XLMRobertaLanguageBackbone',
     'HuggingCLIPVisionBackbone',
+    'HierarchicalXLMRLanguageBackbone',
+    'PseudoHierarchicalXLMRLanguageBackbone',
+    'HierarchicalBiomedCLIPLanguageBackbone',
+    'PseudoHierarchicalBiomedCLIPLanguageBackbone',
 ]
