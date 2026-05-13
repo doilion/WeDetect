@@ -115,5 +115,9 @@ Thumbs.db
 # Claude Code agent state and local IDE config
 .claude/
 
+# Claude Code project instructions (contain dev environment paths)
+CLAUDE.md
+AGENTS.md
+
 # Paper drafts — contain author identity (BibM double-blind review)
 paper/
