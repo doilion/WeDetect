@@ -49,7 +49,17 @@ class YOLOWDetDataPreprocessor(DetDataPreprocessor):
             for batch_aug in self.batch_augments:
                 inputs, data_samples = batch_aug(inputs, data_samples)
 
-        img_metas = [{'batch_input_shape': inputs.shape[2:]}] * len(inputs)
+        # Per-sample img_metas. Carry organ_id/organ_name through if the
+        # collator forwarded them (OC-HMTA Module 1 path).
+        organ_ids = data_samples.get('organ_id', None)
+        organ_names = data_samples.get('organ_name', None)
+        img_metas = []
+        for i in range(len(inputs)):
+            m = {'batch_input_shape': inputs.shape[2:]}
+            if organ_ids is not None:
+                m['organ_id'] = organ_ids[i]
+                m['organ_name'] = organ_names[i] if organ_names else ''
+            img_metas.append(m)
         data_samples_output = {
             'bboxes_labels': data_samples['bboxes_labels'],
             'texts': data_samples['texts'],

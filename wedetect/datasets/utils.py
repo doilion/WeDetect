@@ -57,4 +57,27 @@ def yolow_collate(data_batch: Sequence,
         collated_results['data_samples']['is_detection'] = torch.tensor(
             batch_detection)
 
+    # OC-HMTA Module 1: forward per-sample organ_id / organ_name through the
+    # training-time fast-path. Without this, YOLOWDetDataPreprocessor below
+    # rebuilds img_metas from scratch and the OrganExtractor's metainfo is lost.
+    # All-or-none across the batch: if any sample carries organ_id, every
+    # sample must (otherwise the head-side mask logic would silently use a
+    # default for the missing ones).
+    organ_ids_per_sample = [
+        meta['data_samples'].metainfo.get('organ_id', None)
+        for meta in data_batch
+    ]
+    n_with = sum(1 for o in organ_ids_per_sample if o is not None)
+    if 0 < n_with < len(organ_ids_per_sample):
+        raise RuntimeError(
+            f'organ_id present on {n_with}/{len(data_batch)} samples in this '
+            f'batch — partial coverage is not supported. Make sure every '
+            f'dataset in the dataloader injects OrganExtractor or none does.')
+    if n_with == len(organ_ids_per_sample):
+        collated_results['data_samples']['organ_id'] = organ_ids_per_sample
+        collated_results['data_samples']['organ_name'] = [
+            meta['data_samples'].metainfo.get('organ_name', '')
+            for meta in data_batch
+        ]
+
     return collated_results

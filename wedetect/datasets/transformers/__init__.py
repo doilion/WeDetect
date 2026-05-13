@@ -6,8 +6,10 @@ from .mm_mix_img_transforms import (
     MultiModalMosaic, MultiModalMosaic9, YOLOv5MultiModalMixUp,
     YOLOXMultiModalMixUp)
 from .transforms import WeDetectKeepRatioResize, WeDetectLetterResize
+from .organ_extractor import OrganExtractor
 
 __all__ = ['RandomLoadText', 'LoadText',
            'HierarchicalRandomLoadText', 'HierarchicalLoadText',
            'MultiModalMosaic', 'MultiModalMosaic9',
-           'YOLOv5MultiModalMixUp', 'YOLOXMultiModalMixUp']
+           'YOLOv5MultiModalMixUp', 'YOLOXMultiModalMixUp',
+           'OrganExtractor']

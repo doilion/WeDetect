@@ -358,11 +358,46 @@ class YOLOWorldHead(YOLOv8Head):
     """YOLO-World Head
     """
 
-    def __init__(self, world_size=-1, *args, **kwargs) -> None:
+    def __init__(self, world_size=-1,
+                 organ_loss_mask: bool = False,
+                 organ_mask_path: Optional[str] = None,
+                 *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.world_size = world_size
+        # Module 1 (OC-HMTA): organ-conditional loss masking.
+        # When organ_loss_mask=True, per-image cross-organ class loss is
+        # zeroed inside loss_by_feat using self.organ_class_mask indexed by
+        # batch_img_metas[b]['organ_id'].
+        self.organ_loss_mask_enabled = organ_loss_mask
+        # organ_class_mask is registered as a non-persistent buffer so that:
+        #   (a) model.cuda() / DDP replication moves it automatically
+        #   (b) every rank ends up with the same tensor (loaded in __init__)
+        #   (c) it is NOT saved in state_dict (persistent=False) so resumed
+        #       runs always re-read the file via config, avoiding stale paths
+        if organ_mask_path is not None:
+            mask_pkg = torch.load(organ_mask_path, weights_only=False,
+                                  map_location='cpu')
+            self.register_buffer('organ_class_mask', mask_pkg['mask'],
+                                 persistent=False)            # [C, O]
 
-    """YOLO World v8 head."""
+    def set_organ_class_mask(self, mask):
+        """Override or clear the organ_class_mask buffer.
+
+        Used by eval entry scripts to swap the mask after Runner build (e.g.
+        base30 mask for base eval vs novel9 mask for novel eval). Pass
+        mask=None to disable inference masking (row 1 protocol).
+
+        Note: must be called BEFORE DDP wrapping. The assert catches the case
+        where this is invoked on the DDP wrapper instead of the underlying
+        module, which would silently mask only rank 0.
+        """
+        assert not isinstance(self, torch.nn.parallel.DistributedDataParallel), (
+            'set_organ_class_mask called on DDP wrapper — would only affect '
+            'rank 0. Call on the underlying module (model.module.bbox_head).')
+        if 'organ_class_mask' in self._buffers:
+            del self._buffers['organ_class_mask']
+        if mask is not None:
+            self.register_buffer('organ_class_mask', mask, persistent=False)
 
     def loss(self, img_feats: Tuple[Tensor], txt_feats: Tensor,
              batch_data_samples: Union[list, dict]) -> dict:
@@ -514,9 +549,59 @@ class YOLOWorldHead(YOLOv8Head):
             self.flatten_priors_train[..., :2], flatten_pred_bboxes,
             self.stride_tensor[..., 0])
 
+        # Module 1 (OC-HMTA): organ-conditional class mask.
+        # Build per_image_mask [B, C] in {0, 1} from batch_img_metas BEFORE
+        # the assigner so that (a) the assigner ranks anchors using only
+        # in-organ class scores (otherwise spurious cross-organ scores could
+        # influence positive selection and then get masked out of the loss,
+        # leaving them unsupervised), and (b) the same mask is reused for
+        # cls-loss masking. Hard-fail on any missing/mismatched input.
+        per_image_mask = None
+        organ_mask = None
+        if getattr(self, 'organ_loss_mask_enabled', False):
+            organ_mask = getattr(self, 'organ_class_mask', None)
+            if organ_mask is None:
+                raise RuntimeError(
+                    'organ_loss_mask_enabled=True but head.organ_class_mask is None. '
+                    'Set organ_mask_path in the head config or call '
+                    'head.set_organ_class_mask(...) before training.')
+            if organ_mask.shape[0] != flatten_cls_preds.shape[-1]:
+                raise RuntimeError(
+                    f'organ_class_mask has {organ_mask.shape[0]} classes but cls_pred '
+                    f'has {flatten_cls_preds.shape[-1]}. Regenerate the mask for the '
+                    f'training class list (see tools/build_class_organ_mask.py).')
+            organ_mask = organ_mask.to(
+                device=flatten_cls_preds.device, dtype=flatten_cls_preds.dtype)
+            B = flatten_cls_preds.shape[0]
+            C = organ_mask.shape[0]
+            # Validate + extract organ_ids in one Python pass, then index
+            # organ_mask vectorized (cheaper than per-sample mask[b] = ...).
+            organ_ids = []
+            for b, meta in enumerate(batch_img_metas):
+                o = meta.get('organ_id', -1) if isinstance(meta, dict) else -1
+                if isinstance(o, torch.Tensor):
+                    o = int(o.item())
+                # reject bool (int(True)==1 silently maps to organ 1) and None
+                if o is None or isinstance(o, bool) or not (0 <= int(o) < organ_mask.shape[1]):
+                    raise RuntimeError(
+                        f'sample {b} missing valid organ_id in metainfo (got {o!r}); '
+                        f'check that OrganExtractor is in the train pipeline and '
+                        f'PackDetInputs.meta_keys includes "organ_id".')
+                organ_ids.append(int(o))
+            organ_ids_t = torch.as_tensor(organ_ids, device=organ_mask.device)
+            per_image_mask = organ_mask[:, organ_ids_t].T.contiguous()  # [B, C]
+
+        # Cls scores fed to the assigner. Note: BatchTaskAlignedAssigner only
+        # reads pred_scores[b, gt_label[b,g], a] for each (b, g, a) triple
+        # (see batch_task_aligned_assigner.py:358-363). Since GT classes are
+        # always in-organ for TCT_NGC (single-organ-per-image), cross-organ
+        # scores are NEVER consulted by the assigner — pre-masking them would
+        # be a mathematical no-op. Loss-side masking alone is sufficient.
+        assigner_cls_scores = flatten_cls_preds.detach().sigmoid()
+
         assigned_result = self.assigner(
             (flatten_pred_bboxes.detach()).type(gt_bboxes.dtype),
-            flatten_cls_preds.detach().sigmoid(), self.flatten_priors_train,
+            assigner_cls_scores, self.flatten_priors_train,
             gt_labels, gt_bboxes, pad_bbox_flag)
 
         assigned_bboxes = assigned_result['assigned_bboxes']
@@ -525,7 +610,22 @@ class YOLOWorldHead(YOLOv8Head):
 
         assigned_scores_sum = assigned_scores.sum().clamp(min=1)
 
-        loss_cls = self.loss_cls(flatten_cls_preds, assigned_scores).sum()
+        loss_cls_elem = self.loss_cls(flatten_cls_preds, assigned_scores)  # [B, A, C]
+
+        if per_image_mask is not None:
+            # Per-image rescale by C / valid_C keeps the per-image cls-BCE
+            # magnitude comparable across organs of different cardinalities
+            # (so e.g. Serous 2-class images don't get systematically weaker
+            # gradients than TCT_CCD 10-class images). NOTE: only the BCE
+            # numerator is rescaled; assigned_scores_sum (the denominator)
+            # is naturally restricted to in-organ matches by the assigner,
+            # so it is not biased by organ class count.
+            C = organ_mask.shape[0]
+            valid_C = per_image_mask.sum(dim=1).clamp(min=1.0)            # [B]
+            scale = (C / valid_C).view(B, 1, 1)
+            loss_cls_elem = loss_cls_elem * per_image_mask.unsqueeze(1) * scale
+
+        loss_cls = loss_cls_elem.sum()
         loss_cls /= assigned_scores_sum
 
         # rescale bbox
@@ -538,7 +638,19 @@ class YOLOWorldHead(YOLOv8Head):
             # when num_pos > 0, assigned_scores_sum will >0, so the loss_bbox
             # will not report an error
             # iou loss
-            prior_bbox_mask = fg_mask_pre_prior.unsqueeze(-1).repeat([1, 1, 4])
+            # .expand + .contiguous() instead of .repeat: cheaper (no per-elem
+            # copy), and avoids a suspected DDP-time aliasing issue where
+            # .repeat() produced a tensor whose bool True-count diverged from
+            # 4 * num_pos, breaking the downstream reshape([-1, 4]).
+            fg_mask_pre_prior = fg_mask_pre_prior.contiguous()
+            prior_bbox_mask = (fg_mask_pre_prior.unsqueeze(-1)
+                                .expand(-1, -1, 4).contiguous())
+            # Hard invariant: True count must equal 4 * num_pos, else reshape
+            # to [-1, 4] silently mis-shapes downstream tensors.
+            assert prior_bbox_mask.sum().item() == int(num_pos.item()) * 4, (
+                f'prior_bbox_mask True={prior_bbox_mask.sum().item()} '
+                f'!= 4*num_pos={int(num_pos.item())*4}; '
+                f'fg_mask shape={tuple(fg_mask_pre_prior.shape)}')
             pred_bboxes_pos = torch.masked_select(
                 flatten_pred_bboxes, prior_bbox_mask).reshape([-1, 4])
             assigned_bboxes_pos = torch.masked_select(
@@ -662,6 +774,43 @@ class YOLOWorldHead(YOLOv8Head):
         ]
 
         flatten_cls_scores = torch.cat(flatten_cls_scores, dim=1).sigmoid()
+
+        # Organ-conditional class mask (inference-time clinical prior).
+        # If self.organ_class_mask is set (via config organ_mask_path or via
+        # head.set_organ_class_mask), zero cross-organ class scores per-image
+        # BEFORE top-k / NMS. Symmetric to training-side hard-fail semantics:
+        # mask present but shape-mismatched, or any sample missing organ_id,
+        # is an error (silent skip would produce row-1 numbers under what
+        # the caller believes is a row-2/3 eval).
+        organ_mask = getattr(self, 'organ_class_mask', None)
+        if organ_mask is not None:
+            if organ_mask.shape[0] != flatten_cls_scores.shape[-1]:
+                raise RuntimeError(
+                    f'organ_class_mask has {organ_mask.shape[0]} classes but '
+                    f'cls_scores has {flatten_cls_scores.shape[-1]}. '
+                    f'Pass head.set_organ_class_mask(None) to disable masking, '
+                    f'or supply a mask matching the test class list.')
+            organ_mask = organ_mask.to(
+                device=flatten_cls_scores.device,
+                dtype=flatten_cls_scores.dtype)
+            # Validate per-sample organ_id + build per_image_mask vectorized.
+            organ_ids = []
+            for b, meta in enumerate(batch_img_metas):
+                o = meta.get('organ_id', -1) if isinstance(meta, dict) else -1
+                if isinstance(o, torch.Tensor):
+                    o = int(o.item())
+                # reject bool (int(True)==1 silently maps to organ 1) and None
+                if o is None or isinstance(o, bool) or not (0 <= int(o) < organ_mask.shape[1]):
+                    raise RuntimeError(
+                        f'sample {b} has invalid organ_id={o!r} in img_meta; '
+                        f'check OrganExtractor is in test_pipeline and '
+                        f'PackDetInputs.meta_keys includes "organ_id".')
+                organ_ids.append(int(o))
+            organ_ids_t = torch.as_tensor(organ_ids, device=organ_mask.device)
+            per_image_mask = organ_mask[:, organ_ids_t].T.contiguous()  # [B, C]
+            # Out-of-place multiply so we never mutate a tensor a future
+            # caller might re-read.
+            flatten_cls_scores = flatten_cls_scores * per_image_mask.unsqueeze(1)
         flatten_bbox_preds = torch.cat(flatten_bbox_preds, dim=1)
         flatten_decoded_bboxes = self.bbox_coder.decode(
             flatten_priors[None], flatten_bbox_preds, flatten_stride)
