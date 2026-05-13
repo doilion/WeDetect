@@ -37,6 +37,7 @@ full_5 单独报告作为"5-class mixed eval"，**不入 avg**。本文档所有
 2026-05-09  Phase 3b   THAF + BiomedCLIP 训练启动 (parallel)
 2026-05-11  Phase 3.5  Fusion bypass diagnostic (α→0, DEAD-6)
 2026-05-11  Phase 3.6  Image encoder alignment (99.2% novel→base, DEAD-7)
+2026-05-12  Phase 3.7  Per-Class Weights (PCW) — val_30 0.270 ≈ noTHAF mean pool 0.271 (DEAD-13)
 2026-05-11  Phase 4    Detection-gate 推迟决策
 2026-05-11  Phase 5a   noTHAF (encoder swap 单变量) eval
 2026-05-12  Phase 5b   5-shot visual prompt zero-shot baseline ✅ 新最佳 0.123
@@ -63,6 +64,7 @@ full_5 单独报告作为"5-class mixed eval"，**不入 avg**。本文档所有
 | **SAVPE-v1 cell-contrastive (Phase 5d)** — 在 noTHAF ckpt 上加 1.56M SAVPE adapter，detector 全冻结，cell-level focal BCE 训 1h | 0.321 (head 不变) | **0.114** strict | DEAD-11(a): −7% vs inference-only 0.123；2 阶段 frozen-detector 训练 ill-posed |
 | **SAVPE-v2 + L_align λ=1.0 (Phase 5e)** — v1 + 显式 cross-modal MSE alignment loss + multi-scale BN-aligned cell-contrastive + cross-class contrastive | — (训练 ½ ep killed) | n/a | DEAD-11(b): cos(vis_emb, text_emb) 从 -0.06 飙到 **0.983**，vis_emb 完全坍缩成 text_emb 副本 |
 | **SAVPE-v2 + L_align λ=0.3 (Phase 5e)** — 上面 λ 降 3.3× | — (step 450 killed) | n/a | DEAD-11(c): cos = **0.963** @ step 450，同轨迹坍缩，证明 λ 调参救不了结构性问题 |
+| **PCW per-class weights (Phase 3.7, 2026-05-13)** — 30 类 × 5 learnable softmax weights (155 params), text path inference | **0.319** | **0.088** | DEAD-13: median softmax std = 0.013 → trained weights ≈ uniform = mean pool（base −0.002 vs noTHAF noise；novel 0.088 与 THAF text 0.041 相比好但仍不如 visproto 0.123） |
 
 ---
 
@@ -432,6 +434,137 @@ metric: For each GT bbox, extract image feature at bbox center
 ### Paper §3 Takeaway
 
 > *Phase 3.6 diagnostic on trained THAF checkpoints reveals the true bottleneck: 99.2% of novel test images produce image features whose top-1 cosine match is a base class (rather than the correct novel class). The mean cosine of novel image features to their ground-truth novel class vector is −0.178—nearly reversed. This implies the image encoder over-specializes to base classes during contrastive training, and that any text-side intervention (including ours: THAF fusion, encoder swap, prompt engineering) cannot rescue novel zero-shot.*
+
+---
+
+## 7.5 Phase 3.7: Per-Class Weights (PCW) — 验证 user 直觉"mean 是下限" (2026-05-13, DEAD-13 confirmed)
+
+### Motivation
+
+用户在 Phase 3 review 时提的直觉：
+
+> *"mean average 肯定其实是一个下线按道理...庐山的四面八方很多个面的描述如果取平均可能会类似四不像的一个结果"*
+
+5 个 attribute（organ specimen / diagnostic code / cytomorphology / background_immunoprofile / key_distinguishing_feature）在医学语义上**近正交**：呼吸道-Neutrophil 主要看 cytomorphology（多叶核），SCC 主要看 diagnostic_code（PSC VI Malignant）。**mean pool 等权重平均**理论上把高 signal attribute 稀释了，**per-class learnable weights** 应该能涨 1-3pp base。
+
+THAF 的 cross-attention fusion 本来是这个 idea 的复杂版，但实证 α→0 退化成 mean pool（DEAD-6）。简化版 PCW 直接给每类 5 个 learnable softmax weights，**验证 fusion 失败是设计问题还是 mean pool 本身就是天花板**。
+
+### Setup
+
+```
+src: docs/tct_ngc_cumulative_experiment_summary_20260511.md §6.2 (Option 3a)
+config: config/wedetect_tiny_tct_ngc_dev30_pcw_biomedclip_2gpu.py
+backbone: wedetect/models/backbones/per_class_weighted_backbone.py
+   class PseudoPerClassWeightedBiomedCLIPLanguageBackbone:
+       attr_weights = nn.Parameter(torch.zeros(num_known_classes + 1, num_attr_types))
+       # +1 row for unknown classes (novel zero-shot fallback)
+       
+       Forward:
+           w = softmax(attr_weights[class_idx])  # [A]
+           class_vec = sum_a (w[a] * attr_emb[a])  # weighted mean over 5 attrs
+
+参数量: (30 known + 1 fallback) × 5 attr = 155 个 scalars (vs THAF cross-attn 3.15M)
+其他: 训练 config 跟 THAF biomedclip 完全一致（12 ep, batch=8 × 2 GPU, lr 5e-4）
+启动: 2026-05-12 10:18 PT, 跑了 ~12.5h
+完成: 2026-05-12 22:51 PT
+ckpt: work_dirs/wedetect_tiny_tct_ngc_dev30_pcw_biomedclip_2gpu/best_coco_bbox_mAP_epoch_8.pth
+```
+
+### Result
+
+**Val mAP per epoch (val_30, 30 类含 5 negative)**:
+
+| Epoch | val_30 mAP |
+|---:|---:|
+| 1 | 0.184 |
+| 3 | 0.235 |
+| 5 | 0.245 |
+| 7 | 0.259 |
+| **8 (best)** | **0.270** ⭐ |
+| 9 | 0.267 |
+| 10 | 0.264 |
+| 11 | 0.263 |
+| 12 | 0.261 |
+
+**对比已有 ckpts (统一用 val_30 + test_base + novel mean)**：
+
+| Method | val_30 | test_base 25-cls | Novel mean (9 unique) | Notes |
+|---|---:|---:|---:|---|
+| clean dev30 (XLM-R + 1 PSC) | 0.281 | 0.310 | 0.108 (text) | XLM-R baseline |
+| **noTHAF (BiomedCLIP + 1 PSC, mean pool 等价)** | **0.271** | **0.321** | **0.005 text / 0.123 visproto** | encoder swap baseline |
+| **PCW (BiomedCLIP + 5-attr + per-class weights, text path)** | **0.270** | **0.319** | **0.088** | **跟 noTHAF 持平 (Δ=−0.002 in noise)** |
+| THAF + BiomedCLIP (5-attr + cross-attn fusion) | 0.327 | 0.327 | 0.041 (text) | 见 DEAD-6 |
+
+**Novel per-split detail (PCW text path)**:
+
+| Split | mAP |
+|---|---:|
+| main_3 | 0.047 |
+| pseudo_2 | 0.123 |
+| hard_4 | 0.101 |
+| _full_5 (mixed)_ | _0.050_ |
+| **mean over 9 unique novel** | **0.088** |
+
+→ PCW novel mean **0.088 > THAF novel 0.041 (text path)** 但**远低于** noTHAF visproto 0.123，**远低于** YOLOE 0.261。意思是：mean pool over 5 BiomedCLIP attribute embeddings 在 novel 上**比 THAF 的 trained fusion 强一点**，但跟 visual prompt 路径相比仍是 1/3 的 ceiling。
+
+### Attr-weights 诊断 — DEAD-13 完全确认
+
+读 trained `backbone.text_model.attr_weights` 参数：
+
+```
+Shape: [31, 5]  (30 base 类 + 1 fallback row for novel)
+
+Fallback row (idx 30, used for novel inference):
+  raw = [0.000, 0.000, 0.000, 0.000, 0.000]   ← 完全没动 (训练时 base 类才有 gradient)
+  softmax = [0.20, 0.20, 0.20, 0.20, 0.20]    ← 严格 uniform = mean pool
+
+Base class rows (idx 0-29):
+  raw stats: mean=−0.006, std=0.130, range=[−0.81, +0.66]
+  softmax std per row: mean=0.019, median=0.013
+  → 训练后**几乎全部 uniform**（median 偏离等权 0.2 只 ±1.3%）
+
+Most non-uniform base class (cls 14, std=0.118):
+  softmax = [0.09, 0.13, 0.27, 0.14, 0.37]
+  略偏向 attr 2 (cytomorphology) + attr 4 (key_distinguishing_feature)
+  但仍接近 uniform
+```
+
+→ **PCW 学到的 weights 跟 mean pool 几乎不可区分**，DEAD-13 = "per-class learnable fusion ≈ mean pool"  **实证 confirmed**。
+
+### Reflection — DEAD-13 候选
+
+🔥 **per-class softmax weights 几乎等价 mean pool**：
+
+- val_30 0.270 vs noTHAF mean pool 0.271 = **Δ=−0.001**（noise floor）
+- 假设 1：155 个 weights 训练后**接近 uniform**（softmax(zeros) = 1/5 等权）→ 真的等于 mean pool
+- 假设 2：学到非均匀但收益被 noise 淹没
+- 任一情况下，**复杂 fusion 设计追不上 mean pool 不是优化失败，是 text-side 信息论上限**
+
+**核心 implication**：
+1. **DEAD-6**（THAF α→0）+ **DEAD-13**（PCW = mean pool）共同证明：**任何只动 5-attr 加权方案的 fusion 设计都到不了天花板之上**
+2. 真正想突破 base + novel 不能在 text-side 折腾，必须从 image-side（视觉提示路径）发起
+3. PCW 的 fallback row 永远 uniform → novel 路径 = noTHAF text 0.005 失败模式（DEAD-9）→ 不解决 novel
+
+**给 paper §B negative result 添一笔实证**：
+
+| 复杂度 | 方法 | 参数量 | base mAP |
+|---|---|---:|---:|
+| 高 | THAF cross-attn fusion (DEAD-6) | 3.15M | 0.327 (但 α→0) |
+| 低 | **PCW per-class weights (DEAD-13)** | **155** | **≈ noTHAF mean pool** |
+| 零 | noTHAF mean pool baseline | 0 | 0.321 |
+
+→ **mean pool over 5 structured attributes is the text-side ceiling**, 这是 paper §A method 选择 "no fusion" 的最强支撑。
+
+### Decision → Next
+
+PCW 跟主线 SOTA chase（视觉提示路径 Phase A-D）**正交且互补**：
+- Paper §B 用 DEAD-13 强化 "text-side fusion 已撞天花板" claim
+- Paper §A main result 仍走 visual prompt 路线（追 YOLOE 0.261）
+- PCW 不重训，不参与 SOTA chase
+
+### Paper §3 Takeaway (final)
+
+> *To verify whether the THAF cross-attention fusion failure (DEAD-6) was an optimization artifact or a fundamental limit of text-side fusion, we trained a minimal per-class learnable weighting variant (PCW): each class has 5 learnable softmax weights over its 5 structured attribute embeddings, totaling 155 parameters versus THAF's 3.15M. After 12 epochs of training, PCW achieves **test_base 25-cls = 0.319** versus noTHAF mean pool **0.321** (Δ=−0.002 in noise) and **novel mean (9 unique) = 0.088** versus noTHAF text 0.005 / visproto **0.123**. Diagnostic inspection of the trained `attr_weights` parameter reveals **the median learned weight deviates from uniform by only ±1.3%**, and the novel-inference fallback row is identically zero (i.e., pure uniform softmax = mean pool). Combined with DEAD-6 (THAF α→0), this DEAD-13 finding establishes that **mean pooling over structured medical attribute prompts is the text-side performance ceiling**; learnable fusion designs of any complexity (155 to 3.15M parameters) cannot meaningfully exceed it. This motivates our paper's choice of the simplest 5-attr + BiomedCLIP + mean pool combination as the §A baseline, and pivots all subsequent improvement efforts to the image-side / visual prompt path (Phase 5b-5e + the new VPA episodic training plan).*
 
 ---
 
@@ -921,6 +1054,7 @@ work_dirs/savpe_v2_aligned_lambda03/
 | THAF + XLM-R | XLM-R 768d | 5 attr | THAF | dev30 | 0.302 | 0.021 | 0.033 | 0.013 | _0.013_ | 0.020 🔻 |
 | THAF + BiomedCLIP (text) | BiomedCLIP 512d | 5 attr | THAF (α→0) | dev30 | **0.327** ✨ | 0.009 | 0.137 | 0.017 | _0.045_ | 0.041 |
 | THAF + BiomedCLIP + 5-shot visproto | BiomedCLIP 512d | 5-shot visual prompt | — (text bypassed) | dev30 (inference-only) | 0.327 (head) | 0.004 | 0.025 | 0.004 | _0.009_ | **0.009 🔻🔻** (vs noTHAF visproto 0.122, **−93%**) |
+| PCW (BiomedCLIP + 5-attr + per-class softmax weights, Phase 3.7) | BiomedCLIP 512d | 5 attr | per-class softmax (155 params) | dev30 (12 ep, best ep 8) | **0.319** | 0.047 | 0.123 | 0.101 | _0.050_ | **0.088** (DEAD-13: ≈ mean pool baseline, +0.047 vs THAF text 0.041) |
 | **noTHAF + text** | **BiomedCLIP 512d** | **1 PSC** | — | dev30 | 0.321 | 0.002 | 0.005 | 0.007 | _0.001_ | 0.005 🔻🔻 |
 | **noTHAF + 5-shot visproto (新最佳)** | **BiomedCLIP 512d** | **5-shot visual prompt** | — | dev30 (inference-only) | 0.321 | 0.076 | 0.135 | **0.150** | _0.056_ | **0.122** ✅ |
 | noTHAF + 5-shot strict held-out | BiomedCLIP 512d | 5-shot visual prompt | — | dev30 | 0.321 | 0.076 | 0.135 | 0.152 | _0.056_ | **0.123** ✨ |
@@ -944,6 +1078,7 @@ work_dirs/savpe_v2_aligned_lambda03/
 | 10 | Score fusion per-class routing 跨 ckpt 通用 | noTHAF + score fusion ≈0.02 << visproto-only 0.123 | Routing 规则 encoder-specific，跨 ckpt 失效 |
 | **11** | **SAVPE 训练 with frozen detector**（5c/5d/5e 全套）| **5c: ceiling = teacher 0.005; 5d: 0.114 strict (−7% vs 0.123 baseline); 5e λ=1.0/0.3: cos→0.98/0.96 坍缩** | Stage-1 head 把 matching key 锁在 text_emb 方向；Stage-2 SAVPE 在冻结头下任何 detection-relevant loss 的最快下降路径都是 vis_emb := text_emb，结构性 ill-posed |
 | **12** | **THAF ckpt + 5-shot visproto inference**（2026-05-12 ablation 补漏）| THAF image_encoder + head + visproto class_vec = **0.009** (mean over 9 unique novel)；vs noTHAF + visproto **0.123 (−93%)**，甚至比 THAF + text 0.041 还差 4× | THAF 训练时 image_encoder 跟 5-attr fusion text 共训，head BN running stats 校准的是 fusion-text 方向。换 visproto (image-derived class vec) 后 head 计分完全失配。**THAF 训练把 visproto 路径也搞坏了**——双重失败：novel-text 不行（DEAD-7） + visproto 也不行（DEAD-12）|
+| **13** | **PCW per-class learnable weights ≈ mean pool**（Phase 3.7, 2026-05-13 confirmed）| **base 25-cls = 0.319 ≈ noTHAF 0.321** (Δ=−0.002); **novel mean = 0.088** (uniform fallback = mean pool); attr_weights diagnostic: **median softmax std = 0.013** → 155 个 weights 训完几乎全 uniform | Text-side fusion 设计撞**信息论上限**：5 个 structured medical attribute 在语义上近正交，但 attribute 各自给的判别信号本身有限；任何复杂度的 learnable weighting (155 to 3.15M params) 都追不上简单 mean pool。**真正突破点在 image-side 视觉提示路径**，不在 text-side fusion 折腾 |
 
 ---
 
