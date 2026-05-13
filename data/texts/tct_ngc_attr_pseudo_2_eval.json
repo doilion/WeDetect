@@ -1,0 +1,16 @@
+[
+  [
+    "Respiratory tract, bronchial brushing or lung FNA specimen",
+    "PSC Category VI: Malignant — pulmonary adenocarcinoma",
+    "Three-dimensional acinar, papillary, or glandular clusters show enlarged eccentric nuclei, irregular membranes, fine-to-coarse chromatin, prominent nucleoli, high N:C ratio, and vacuolated mucinous cytoplasm.",
+    "Necrotic or mucinous background; TTF-1, napsin A, CK7 positive; p40/CK5/6 negative; molecular testing preserved.",
+    "Intracytoplasmic mucin with glandular acini distinguishes this vs Squamous cell carcinoma, which has keratinization, bridges, and p40 positivity."
+  ],
+  [
+    "Serous cavity, peritoneal or pleural effusion specimen",
+    "TIS Category V: MAL-S — metastatic high-grade serous carcinoma",
+    "Papillary fragments, spheroids, and single cells show marked pleomorphic nuclei, coarse chromatin, prominent nucleoli, high mitotic/apoptotic activity, high N:C ratio, and dense or vacuolated cytoplasm.",
+    "Hemorrhagic proteinaceous effusion, psammoma bodies possible; PAX8, WT1, ER positive; p53 aberrant; calretinin negative.",
+    "PAX8/WT1 positivity with aberrant p53 distinguishes this vs Reactive mesothelial proliferation, which retains calretinin and wild-type p53."
+  ]
+]

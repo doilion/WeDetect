@@ -1,0 +1,275 @@
+{
+  "respiratory tract-Neutrophil": {
+    "organ_specimen": "Respiratory tract, sputum, bronchial brushing, or lavage specimen",
+    "diagnostic_code": "PSC Category II: Negative — acute neutrophilic inflammation",
+    "cytomorphology": "Singles and loose aggregates in mucus show segmented multilobed nuclei with dense clumped chromatin, inconspicuous nucleoli, high N:C ratio, and scant pale finely granular cytoplasm.",
+    "background_and_immunoprofile": "Mucopurulent exudate, fibrin and bacteria; CD15, CD66b, myeloperoxidase positive; cytokeratin negative.",
+    "key_distinguishing_feature": "Multilobed segmented nucleus distinguishes this vs Lymphocyte, which has a single round dense nucleus and thin basophilic cytoplasmic rim."
+  },
+  "respiratory tract-Alveolar macrophages": {
+    "organ_specimen": "Respiratory tract, sputum or bronchoalveolar lavage specimen",
+    "diagnostic_code": "PSC Category II: Negative — alveolar macrophages",
+    "cytomorphology": "Singly dispersed or loose clusters of histiocytes show eccentric oval or bean-shaped nuclei, fine chromatin, inconspicuous nucleoli, low N:C ratio, and abundant foamy vacuolated cytoplasm with carbon or hemosiderin.",
+    "background_and_immunoprofile": "Watery mucus with dust, hemosiderin or debris; CD68, CD163 positive; epithelial markers negative.",
+    "key_distinguishing_feature": "Pigment-laden foamy cytoplasm distinguishes this vs Adenocarcinoma, which forms glandular clusters with malignant nucleoli and mucin vacuoles."
+  },
+  "respiratory tract-Ciliated columnar epithelial cells": {
+    "organ_specimen": "Respiratory tract, bronchial brushing or washing specimen",
+    "diagnostic_code": "PSC Category II: Negative — benign bronchial epithelium",
+    "cytomorphology": "Cohesive sheets, strips, and picket-fence groups show basally oriented uniform oval nuclei, smooth membranes, fine chromatin, low-to-moderate N:C ratio, and delicate basophilic columnar cytoplasm with apical cilia.",
+    "background_and_immunoprofile": "Clean mucus with goblet cells; CK7, TTF-1 variably positive; p40 limited to basal cells.",
+    "key_distinguishing_feature": "Apical cilia and terminal bars distinguish this vs Adenocarcinoma, which lacks cilia and forms disordered three-dimensional glandular clusters."
+  },
+  "respiratory tract-Lymphocyte": {
+    "organ_specimen": "Respiratory tract, bronchoalveolar lavage or lymph-node FNA specimen",
+    "diagnostic_code": "PSC Category II: Negative — benign lymphoid cells",
+    "cytomorphology": "Small dispersed mononuclear cells show round uniform nuclei with dense clumped mature chromatin, absent nucleoli, very high N:C ratio, and a scant thin basophilic cytoplasmic rim.",
+    "background_and_immunoprofile": "Reactive lymphoid background; CD45 positive with mixed CD3 T cells and CD20 B cells.",
+    "key_distinguishing_feature": "Uniform small nuclei without molding distinguish this vs Small cell carcinoma, which shows nuclear molding, crush artifact, and neuroendocrine chromatin."
+  },
+  "respiratory tract-Impurity": {
+    "organ_specimen": "Respiratory specimen, smear or liquid-based cytology preparation",
+    "diagnostic_code": "PSC Category I: Nondiagnostic — contaminant or artifact",
+    "cytomorphology": "Amorphous granular, filamentous, refractile, or angular noncellular material lacks true cellular arrangement, nuclear membranes, chromatin, nucleoli, N:C relationship, and definable cytoplasmic borders.",
+    "background_and_immunoprofile": "Acellular mucus, stain precipitate, fibers, talc or lubricant; IHC noncontributory, no cytokeratin/CD45/CD68 staining.",
+    "key_distinguishing_feature": "Complete absence of nuclear membrane and cytoplasm distinguishes this vs Macrophages, which show true foamy cytoplasm and eccentric nuclei."
+  },
+  "respiratory tract-Squamous epithelial cells": {
+    "organ_specimen": "Respiratory tract, sputum or bronchial brushing specimen",
+    "diagnostic_code": "PSC Category II: Negative — benign squamous epithelium",
+    "cytomorphology": "Flat sheets and isolated polygonal cells show small central or pyknotic nuclei, smooth contours, condensed chromatin, low N:C ratio, and abundant dense cyanophilic, eosinophilic, or orangeophilic cytoplasm.",
+    "background_and_immunoprofile": "Upper-airway contamination or metaplasia; p40, p63, CK5/6 positive; Ki-67 low.",
+    "key_distinguishing_feature": "Bland pyknotic nuclei with abundant sharp-bordered cytoplasm distinguish this vs Squamous cell carcinoma, which shows tumor diathesis and pleomorphic keratinization."
+  },
+  "respiratory tract-Diseased cells": {
+    "organ_specimen": "Respiratory tract, bronchial brushing, washing, or FNA specimen",
+    "diagnostic_code": "PSC Category III: Atypical — reactive/indeterminate epithelial atypia",
+    "cytomorphology": "Scattered cells or loose clusters show partial loss of polarity, cytomegaly, mild anisonucleosis, smooth-to-slightly irregular membranes, fine-to-mildly coarse chromatin, and vacuolated or metaplastic cytoplasm.",
+    "background_and_immunoprofile": "Inflammation, necrotic debris, therapy effect or infection; lineage CK7/p40/TTF-1 retained, Ki-67 not high.",
+    "key_distinguishing_feature": "Limited mild anisonucleosis with retained lineage pattern distinguishes this vs PSC Category V Suspicious, which has quantitatively stronger malignant atypia."
+  },
+  "Serous effusion-Negative samples": {
+    "organ_specimen": "Serous cavity, pleural/peritoneal/pericardial effusion cytology specimen",
+    "diagnostic_code": "TIS Category II: NFM — negative for malignancy",
+    "cytomorphology": "Benign mesothelial cells occur singly, in flat sheets, or small windows-bearing groups with round uniform nuclei, fine chromatin, occasional nucleoli, low N:C ratio, and dense two-tone cytoplasm.",
+    "background_and_immunoprofile": "Proteinaceous fluid with lymphocytes/macrophages; calretinin, WT1, D2-40 positive; claudin-4, BerEP4 negative.",
+    "key_distinguishing_feature": "Intercellular windows and smooth even nuclei distinguish this vs Metastatic adenocarcinoma, which forms tight morules with claudin-4 positivity."
+  },
+  "Serous effusion-Diseased cells": {
+    "organ_specimen": "Serous cavity, pleural/peritoneal/pericardial effusion cytology specimen",
+    "diagnostic_code": "TIS Category III: AUS — atypia of undetermined significance",
+    "cytomorphology": "Reactive clusters or limited papillary/pseudoglandular groups show karyomegaly, mild chromatin irregularity, smooth-to-slightly irregular membranes, prominent nucleoli, and abundant dense or vacuolated mesothelial cytoplasm.",
+    "background_and_immunoprofile": "Serositis with blood or inflammation; mesothelial calretinin/WT1 positive; claudin-4 absent or equivocal.",
+    "key_distinguishing_feature": "Mild karyomegaly with mesothelial windows distinguishes this vs Malignant effusion, which shows tight three-dimensional epithelial clusters and claudin-4 positivity."
+  },
+  "Thyroid gland-PTC": {
+    "organ_specimen": "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "diagnostic_code": "Bethesda VI: Malignant — papillary thyroid carcinoma",
+    "cytomorphology": "Papillary fragments, syncytial sheets, and micropapillae show enlarged oval overlapping nuclei, powdery chromatin, grooves, intranuclear pseudoinclusions, high N:C ratio, and delicate cyanophilic cytoplasm.",
+    "background_and_immunoprofile": "Scant colloid, psammoma bodies, giant cells; CK19, HBME-1, galectin-3, TTF-1, PAX8 positive.",
+    "key_distinguishing_feature": "True intranuclear pseudoinclusions with grooves distinguish this vs Follicular neoplasm, which lacks diffuse PTC nuclear membrane abnormalities."
+  },
+  "Thyroid gland-SPTC": {
+    "organ_specimen": "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "diagnostic_code": "Bethesda V: Suspicious for malignancy — suspicious PTC",
+    "cytomorphology": "Limited cellularity with papillaroid clusters or crowded sheets shows focal enlarged oval nuclei, occasional grooves or pseudoinclusions, pale chromatin, increased N:C ratio, and scant delicate cytoplasm.",
+    "background_and_immunoprofile": "Scant colloid; CK19, HBME-1, galectin-3 may support PTC; BRAF VE1 optional.",
+    "key_distinguishing_feature": "Focal PTC-type nuclear changes distinguish this vs Bethesda VI PTC, which requires a quantitatively convincing malignant follicular-cell population."
+  },
+  "Thyroid gland-NS": {
+    "organ_specimen": "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "diagnostic_code": "Bethesda I: Nondiagnostic — scant follicular cells",
+    "cytomorphology": "Blood, cyst fluid, macrophages, or colloid predominate with absent or too few follicular cell groups; nuclei are absent or bland, and cytoplasm is foamy, degenerative, or obscured.",
+    "background_and_immunoprofile": "Cyst fluid, blood, clotting or drying artifact; IHC not informative; thyroglobulin highlights rare follicular cells.",
+    "key_distinguishing_feature": "Insufficient benign follicular groups distinguish this vs Bethesda II Benign, which shows adequate colloid-associated follicular epithelium."
+  },
+  "Thyroid gland-Macrophages": {
+    "organ_specimen": "Thyroid gland, cyst-fluid fine-needle aspiration specimen",
+    "diagnostic_code": "Bethesda I: Nondiagnostic — cyst fluid only",
+    "cytomorphology": "Singly dispersed or loose histiocytic clusters show eccentric oval nuclei, smooth membranes, fine chromatin, inconspicuous nucleoli, low N:C ratio, and abundant foamy vacuolated cytoplasm with hemosiderin.",
+    "background_and_immunoprofile": "Cyst fluid, old hemorrhage and colloid; CD68/CD163 positive; thyroglobulin, TTF-1 negative.",
+    "key_distinguishing_feature": "Foamy hemosiderin-laden cytoplasm distinguishes this vs Follicular epithelial cells, which form cohesive sheets and express thyroglobulin."
+  },
+  "Thyroid gland-AUC": {
+    "organ_specimen": "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "diagnostic_code": "Bethesda III: AUS — atypia of undetermined significance",
+    "cytomorphology": "Sparsely cellular microfollicles or crowded trabecular groups show mild nuclear enlargement, pale chromatin, rare grooves, slight membrane irregularity, and scant-to-moderate cytoplasm, sometimes oncocytic granular.",
+    "background_and_immunoprofile": "Scant colloid or Hürthle-cell change; molecular testing optional; CK19/HBME-1 not definitively diagnostic.",
+    "key_distinguishing_feature": "Rare grooves or limited microfollicles distinguish this vs Bethesda IV Follicular neoplasm, which shows a predominant microfollicular pattern."
+  },
+  "Thyroid gland-Negative samples": {
+    "organ_specimen": "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "diagnostic_code": "Bethesda II: Benign — follicular nodular disease",
+    "cytomorphology": "Flat honeycomb sheets and macrofollicular groups show uniform round-to-oval nuclei, smooth membranes, fine granular chromatin, inconspicuous nucleoli, low N:C ratio, and moderate delicate cytoplasm.",
+    "background_and_immunoprofile": "Abundant watery or thick colloid, macrophages possible; thyroglobulin, TTF-1, PAX8 positive in follicular cells.",
+    "key_distinguishing_feature": "Abundant colloid with honeycomb sheets distinguishes this vs Follicular neoplasm, which is cellular and microfollicular with scant colloid."
+  },
+  "Thyroid gland-FC": {
+    "organ_specimen": "Thyroid gland, fine-needle aspiration smear specimen",
+    "diagnostic_code": "Bethesda II: Benign — follicular epithelial cells",
+    "cytomorphology": "Cohesive monolayer sheets, honeycomb groups, and small follicles show round uniform centrally placed nuclei, smooth membranes, fine chromatin, low-to-moderate N:C ratio, and delicate pale cytoplasm.",
+    "background_and_immunoprofile": "Colloid-rich thyroid aspirate; follicular cells express thyroglobulin, TTF-1, PAX8; calcitonin negative.",
+    "key_distinguishing_feature": "Orderly honeycomb follicular architecture distinguishes this vs Papillary thyroid carcinoma, which shows crowding, grooves, pseudoinclusions, and powdery chromatin."
+  },
+  "Urine-NHGUC": {
+    "organ_specimen": "Urinary tract, voided urine or bladder washing specimen",
+    "diagnostic_code": "Paris II: NHGUC — negative for high-grade urothelial carcinoma",
+    "cytomorphology": "Benign urothelial cells, umbrella cells, and squamous cells form flat sheets or small clusters with smooth oval nuclei, fine chromatin, inconspicuous nucleoli, low N:C ratio, and abundant cytoplasm.",
+    "background_and_immunoprofile": "Urine matrix with inflammation/instrumentation; GATA3, uroplakin positive; CK20 limited, p53 wild-type, Ki-67 low.",
+    "key_distinguishing_feature": "Low N:C ratio with smooth chromatin distinguishes this vs AUC, which requires increased N:C ratio and hyperchromatic irregular nuclei."
+  },
+  "Urine-SHGUC": {
+    "organ_specimen": "Urinary tract, voided urine or bladder washing specimen",
+    "diagnostic_code": "Paris IV: SHGUC — suspicious for high-grade urothelial carcinoma",
+    "cytomorphology": "Few severely atypical urothelial cells occur singly or in small clusters with high N:C ratio above 0.7, hyperchromasia, coarse chromatin, irregular nuclear contours, and scant dense cytoplasm.",
+    "background_and_immunoprofile": "Hematuric or necrotic urine; CK20 diffuse, p53 aberrant, Ki-67 high may support HGUC.",
+    "key_distinguishing_feature": "Few high-grade cells distinguish this vs HGUC, which requires many similarly abnormal cells with convincing high-grade morphology."
+  },
+  "Urine-AUC": {
+    "organ_specimen": "Urinary tract, voided urine or bladder washing specimen",
+    "diagnostic_code": "Paris III: AUC — atypical urothelial cells",
+    "cytomorphology": "Scattered urothelial cells or small groups show increased N:C ratio above 0.5, mild hyperchromasia, irregular nuclear contours or clumpy chromatin, and scant-to-moderate cytoplasm.",
+    "background_and_immunoprofile": "Inflammation, stones, instrumentation or therapy effect common; CK20/p53/Ki-67 adjunctive but not definitive.",
+    "key_distinguishing_feature": "Increased N:C ratio with only one high-grade criterion distinguishes this vs SHGUC, which has high N:C ratio and multiple severe features."
+  },
+  "Urine-HGUC": {
+    "organ_specimen": "Urinary tract, voided urine or bladder washing specimen",
+    "diagnostic_code": "Paris V: HGUC — high-grade urothelial carcinoma",
+    "cytomorphology": "Many dyscohesive cells and irregular clusters show N:C ratio above 0.7, marked hyperchromasia, coarse clumpy chromatin, irregular nuclear membranes, occasional nucleoli, and scant dense cytoplasm.",
+    "background_and_immunoprofile": "Necrotic or bloody urine; GATA3, p63, uroplakin positive; CK20 diffuse, p53 aberrant, Ki-67 high.",
+    "key_distinguishing_feature": "Numerous cells meeting high N:C and severe nuclear criteria distinguish this vs SHGUC, which has too few diagnostic cells."
+  },
+  "TCT_CCD-normal": {
+    "organ_specimen": "Uterine cervix, liquid-based ThinPrep cervical cytology specimen",
+    "diagnostic_code": "Bethesda NILM: negative for intraepithelial lesion or malignancy",
+    "cytomorphology": "Superficial and intermediate squamous cells form flat sheets with small pyknotic or vesicular smooth nuclei, fine chromatin, low N:C ratio, and abundant transparent cyanophilic cytoplasm.",
+    "background_and_immunoprofile": "Clean mucus with lactobacilli; p16 negative/non-block, Ki-67 limited to basal metaplastic cells.",
+    "key_distinguishing_feature": "Low N:C ratio and smooth nuclei distinguish this vs ASC-US, which shows nuclear enlargement beyond reactive expectations."
+  },
+  "TCT_CCD-ascus": {
+    "organ_specimen": "Uterine cervix, liquid-based ThinPrep cervical cytology specimen",
+    "diagnostic_code": "Bethesda ASC-US: atypical squamous cells, undetermined significance",
+    "cytomorphology": "Mature squamous cells occur singly or in sheets with nuclear enlargement about 2.5–3 times normal, mild hyperchromasia, slight membrane irregularity, and abundant cytoplasm without definitive koilocytosis.",
+    "background_and_immunoprofile": "Inflammation or atrophy may coexist; hrHPV triage recommended; p16/Ki-67 dual stain may help.",
+    "key_distinguishing_feature": "Borderline nuclear enlargement without true koilocytosis distinguishes this vs LSIL, which has sharply defined perinuclear halos and irregular hyperchromatic nuclei."
+  },
+  "TCT_CCD-asch": {
+    "organ_specimen": "Uterine cervix, liquid-based ThinPrep cervical cytology specimen",
+    "diagnostic_code": "Bethesda ASC-H: atypical squamous cells, cannot exclude HSIL",
+    "cytomorphology": "Small metaplastic-like cells in singles or crowded fragments show high N:C ratio, hyperchromatic irregular nuclei, coarse chromatin, absent nucleoli, and scant dense cyanophilic cytoplasm.",
+    "background_and_immunoprofile": "Atrophy or metaplasia may confound; block p16 and increased Ki-67 support HSIL.",
+    "key_distinguishing_feature": "Focal high N:C atypical cells distinguish this vs HSIL, where abnormal immature squamous cells are quantitatively sufficient."
+  },
+  "TCT_CCD-lsil": {
+    "organ_specimen": "Uterine cervix, liquid-based ThinPrep cervical cytology specimen",
+    "diagnostic_code": "Bethesda LSIL: low-grade squamous intraepithelial lesion",
+    "cytomorphology": "Mature superficial/intermediate squamous cells show enlarged hyperchromatic irregular nuclei at least three times normal, binucleation, coarse chromatin, low-to-moderate N:C ratio, and abundant cytoplasm with koilocytotic halos.",
+    "background_and_immunoprofile": "Koilocytic inflammatory background; HPV effect present, p16 variable/patchy, Ki-67 mildly expanded.",
+    "key_distinguishing_feature": "Koilocytotic halo with nuclear atypia distinguishes this vs ASC-US, which lacks definitive HPV cytopathic nuclear changes."
+  },
+  "TCT_CCD-hsil_scc_omn": {
+    "organ_specimen": "Uterine cervix, liquid-based ThinPrep cervical cytology specimen",
+    "diagnostic_code": "Bethesda HSIL/SCC: high-grade SIL or squamous carcinoma",
+    "cytomorphology": "Small immature cells in syncytial aggregates or singles show very high N:C ratio, hyperchromatic coarse chromatin, angular irregular nuclei, absent or macronucleoli, and scant basophilic or keratinized cytoplasm.",
+    "background_and_immunoprofile": "Tumor diathesis if invasive; p16 block positive, Ki-67 high, p40/p63 positive in SCC.",
+    "key_distinguishing_feature": "Immature high N:C cells with block p16 distinguish this vs LSIL, which has mature koilocytes and lower N:C ratio."
+  },
+  "TCT_CCD-agc_adenocarcinoma_em": {
+    "organ_specimen": "Uterine cervix, liquid-based cervical cytology specimen",
+    "diagnostic_code": "Bethesda AGC/AIS: atypical glandular cells or adenocarcinoma",
+    "cytomorphology": "Endocervical strips, rosettes, feathered sheets, or endometrial ball-like clusters show enlarged oval pseudostratified nuclei, coarse chromatin, nucleoli, high N:C ratio, and mucinous or scant cyanophilic cytoplasm.",
+    "background_and_immunoprofile": "Mucin, blood or necrosis; p16/CEA support endocervical, ER/PAX8/vimentin support endometrial origin.",
+    "key_distinguishing_feature": "Feathering and rosettes distinguish this vs Reactive endocervical cells, which retain honeycomb polarity and smooth evenly spaced nuclei."
+  },
+  "TCT_CCD-vaginalis": {
+    "organ_specimen": "Female lower genital tract, cervical-vaginal cytology specimen",
+    "diagnostic_code": "Bethesda NILM: Trichomonas vaginalis organism present",
+    "cytomorphology": "Pear-shaped or oval organisms lie singly among squamous cells with a small eccentric vesicular nucleus, fine chromatin, and pale finely granular cytoplasm; flagella or undulating membrane may be visible.",
+    "background_and_immunoprofile": "Neutrophilic inflammatory background and reduced lactobacilli; IHC not routine, NAAT confirms infection.",
+    "key_distinguishing_feature": "Eccentric nucleus with flagellated granular cytoplasm distinguishes this vs Neutrophil, which has multilobed nuclei and no organismal cytoplasm."
+  },
+  "TCT_CCD-monilia": {
+    "organ_specimen": "Female lower genital tract, cervical-vaginal cytology specimen",
+    "diagnostic_code": "Bethesda NILM: fungal organisms consistent with Candida",
+    "cytomorphology": "Budding yeasts and elongated pseudohyphae intertwine with squamous cells; host nuclei are bland or mildly reactive, while gray-brown eosinophilic fungal cytoplasm creates spearing or shish-kebab arrays.",
+    "background_and_immunoprofile": "Neutrophilic background; PAS/GMS stains highlight yeasts and pseudohyphae; IHC is not routinely used.",
+    "key_distinguishing_feature": "Constricted pseudohyphae with budding yeasts distinguish this vs Trichomonas, which shows pear-shaped organisms with eccentric nuclei."
+  },
+  "TCT_CCD-dysbacteriosis_herpes_act": {
+    "organ_specimen": "Female lower genital tract, cervical-vaginal cytology specimen",
+    "diagnostic_code": "Bethesda NILM: bacterial vaginosis, HSV, or Actinomyces",
+    "cytomorphology": "Clue cells, multinucleated HSV-infected cells, or cotton-ball filamentous colonies show normal BV nuclei or HSV ground-glass molded nuclei with margination, and cytoplasm coated by coccobacilli or inclusions.",
+    "background_and_immunoprofile": "Coccobacillary flora, acute inflammation or IUD-associated filaments; HSV IHC positive if needed; Gram/GMS helpful.",
+    "key_distinguishing_feature": "Clue-cell coating, HSV 3M nuclei, or Actinomyces filaments distinguish this vs Candida, which shows budding yeasts and pseudohyphae."
+  },
+  "TCT_CCD-ec": {
+    "organ_specimen": "Uterine cervix, endocervical liquid-based cytology specimen",
+    "diagnostic_code": "Bethesda NILM: benign endocervical component present",
+    "cytomorphology": "Benign endocervical cells form honeycomb sheets, strips, and palisaded picket-fence groups with basally placed oval nuclei, fine chromatin, inconspicuous nucleoli, and mucinous columnar cytoplasm.",
+    "background_and_immunoprofile": "Clear mucus background; CK7, PAX8, CEA positive endocervical phenotype; p16 non-block.",
+    "key_distinguishing_feature": "Honeycomb polarity and picket-fence strips distinguish this vs AGC, which shows crowding, pseudostratification, feathering, and nuclear enlargement."
+  },
+  "respiratory tract-Squamous cell carcinoma": {
+    "organ_specimen": "Respiratory tract, bronchial brushing or lung FNA specimen",
+    "diagnostic_code": "PSC Category VI: Malignant — squamous cell carcinoma",
+    "cytomorphology": "Syncytial sheets and isolated keratinized cells show pleomorphic hyperchromatic irregular nuclei, coarse chromatin, variable nucleoli, high N:C ratio, dense orangeophilic cytoplasm, and intercellular bridges.",
+    "background_and_immunoprofile": "Tumor diathesis with necrosis and keratin debris; p40, CK5/6, p63 positive; TTF-1/napsin A negative.",
+    "key_distinguishing_feature": "Intercellular bridges and orangeophilic keratinization distinguish this vs Adenocarcinoma, which shows glandular clusters, mucin vacuoles, and TTF-1/napsin A."
+  },
+  "respiratory tract-adenocarcinoma": {
+    "organ_specimen": "Respiratory tract, bronchial brushing or lung FNA specimen",
+    "diagnostic_code": "PSC Category VI: Malignant — pulmonary adenocarcinoma",
+    "cytomorphology": "Three-dimensional acinar, papillary, or glandular clusters show enlarged eccentric nuclei, irregular membranes, fine-to-coarse chromatin, prominent nucleoli, high N:C ratio, and vacuolated mucinous cytoplasm.",
+    "background_and_immunoprofile": "Necrotic or mucinous background; TTF-1, napsin A, CK7 positive; p40/CK5/6 negative; molecular testing preserved.",
+    "key_distinguishing_feature": "Intracytoplasmic mucin with glandular acini distinguishes this vs Squamous cell carcinoma, which has keratinization, bridges, and p40 positivity."
+  },
+  "respiratory tract-Small cell carcinoma": {
+    "organ_specimen": "Respiratory tract, bronchial brushing or EBUS-FNA specimen",
+    "diagnostic_code": "PSC Category VI: Malignant — small cell carcinoma",
+    "cytomorphology": "Loose clusters and single small blue cells show nuclear molding, crush artifact, scant cytoplasm, very high N:C ratio, finely granular salt-and-pepper chromatin, absent nucleoli, and apoptotic bodies.",
+    "background_and_immunoprofile": "Necrosis, apoptotic debris and crush artifact; synaptophysin, chromogranin, CD56, TTF-1 positive; Ki-67 very high.",
+    "key_distinguishing_feature": "Nuclear molding with salt-and-pepper chromatin distinguishes this vs Lymphocyte, which lacks crush artifact and neuroendocrine marker expression."
+  },
+  "Serous effusion-Breast cancer": {
+    "organ_specimen": "Serous cavity, pleural effusion or peritoneal fluid specimen",
+    "diagnostic_code": "TIS Category V: MAL-S — metastatic breast ductal carcinoma",
+    "cytomorphology": "Cohesive balls, morules, and single malignant cells show enlarged pleomorphic nuclei, irregular membranes, coarse chromatin, prominent nucleoli, high N:C ratio, and moderate vacuolated cytoplasm.",
+    "background_and_immunoprofile": "Proteinaceous effusion with macrophages; GATA3, TRPS1, ER, mammaglobin/GCDFP-15 positive; calretinin/WT1 negative.",
+    "key_distinguishing_feature": "GATA3/TRPS1-positive morules distinguish this vs Mesothelioma, which shows mesothelial windows and calretinin/D2-40 positivity."
+  },
+  "Serous effusion-Ovarian cancer": {
+    "organ_specimen": "Serous cavity, peritoneal or pleural effusion specimen",
+    "diagnostic_code": "TIS Category V: MAL-S — metastatic high-grade serous carcinoma",
+    "cytomorphology": "Papillary fragments, spheroids, and single cells show marked pleomorphic nuclei, coarse chromatin, prominent nucleoli, high mitotic/apoptotic activity, high N:C ratio, and dense or vacuolated cytoplasm.",
+    "background_and_immunoprofile": "Hemorrhagic proteinaceous effusion, psammoma bodies possible; PAX8, WT1, ER positive; p53 aberrant; calretinin negative.",
+    "key_distinguishing_feature": "PAX8/WT1 positivity with aberrant p53 distinguishes this vs Reactive mesothelial proliferation, which retains calretinin and wild-type p53."
+  },
+  "Serous effusion-adenocarcinoma": {
+    "organ_specimen": "Serous cavity, pleural/peritoneal/pericardial effusion cytology specimen",
+    "diagnostic_code": "TIS Category V: MAL-S — metastatic adenocarcinoma NOS",
+    "cytomorphology": "Tight three-dimensional clusters, acini, papillae, or signet-ring cells show enlarged irregular nuclei, coarse chromatin, prominent nucleoli, high N:C ratio, and mucin-vacuolated cytoplasm.",
+    "background_and_immunoprofile": "Mucinous or necrotic effusion; claudin-4, MOC31, BerEP4, CEA positive; calretinin/WT1/D2-40 negative.",
+    "key_distinguishing_feature": "Claudin-4-positive glandular clusters with mucin distinguish this vs Mesothelioma, which is claudin-4 negative and shows mesothelial windows."
+  },
+  "Thyroid gland-MTC": {
+    "organ_specimen": "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "diagnostic_code": "Bethesda VI: Malignant — medullary thyroid carcinoma",
+    "cytomorphology": "Discohesive plasmacytoid, spindle, or epithelioid cells show eccentric nuclei, coarse salt-and-pepper chromatin, occasional pseudoinclusions, variable N:C ratio, and granular amphophilic cytoplasm.",
+    "background_and_immunoprofile": "Amyloid may be present; calcitonin, CEA, chromogranin, synaptophysin positive; thyroglobulin negative; RET testing relevant.",
+    "key_distinguishing_feature": "Calcitonin-positive tumor with amyloid distinguishes this vs Follicular neoplasm, which expresses thyroglobulin and lacks neuroendocrine chromatin."
+  },
+  "Thyroid gland-Suspicious for Malignancy": {
+    "organ_specimen": "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "diagnostic_code": "Bethesda V: Suspicious for malignancy — indeterminate malignant features",
+    "cytomorphology": "Limited clusters or papillary/microfollicular fragments show focal malignant-type nuclear enlargement, irregular membranes, grooves or nucleoli, increased N:C ratio, and scant-to-moderate delicate cytoplasm.",
+    "background_and_immunoprofile": "Scant colloid; CK19/HBME-1/galectin-3, calcitonin, or lymphoid markers selected by suspected tumor type.",
+    "key_distinguishing_feature": "Strong but insufficient malignant features distinguish this vs Bethesda VI Malignant, which has unequivocal cytology and confirmatory lineage."
+  },
+  "Thyroid gland-Malignant tumour": {
+    "organ_specimen": "Thyroid gland, ultrasound-guided FNA or cell-block specimen",
+    "diagnostic_code": "Bethesda VI: Malignant — thyroid malignant tumor",
+    "cytomorphology": "Cellular cohesive or discohesive malignant population shows marked nuclear enlargement, irregular membranes, coarse chromatin, prominent nucleoli or grooves, high N:C ratio, mitoses, and lineage-dependent cytoplasm.",
+    "background_and_immunoprofile": "Necrosis or tumor matrix possible; PAX8/TTF-1/thyroglobulin, calcitonin, cytokeratin, or lymphoid markers classify lineage.",
+    "key_distinguishing_feature": "Unequivocal malignant cytology with lineage marker support distinguishes this vs Bethesda V Suspicious, which is limited or qualitatively incomplete."
+  }
+}

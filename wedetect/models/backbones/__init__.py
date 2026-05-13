@@ -19,6 +19,15 @@ from .biomedclip_backbone import (
     HierarchicalBiomedCLIPLanguageBackbone,
     PseudoHierarchicalBiomedCLIPLanguageBackbone,
 )
+from .per_class_weighted_backbone import (
+    PseudoPerClassWeightedXLMRLanguageBackbone,
+    PseudoPerClassWeightedBiomedCLIPLanguageBackbone,
+)
+from .concat_proj_backbone import (
+    PseudoConcatProjXLMRLanguageBackbone,
+    PseudoConcatProjBiomedCLIPLanguageBackbone,
+)
+from .cytology_savpe import CytologySAVPE
 
 __all__ = [
     'MultiModalYOLOBackbone',
@@ -32,4 +41,9 @@ __all__ = [
     'PseudoHierarchicalXLMRLanguageBackbone',
     'HierarchicalBiomedCLIPLanguageBackbone',
     'PseudoHierarchicalBiomedCLIPLanguageBackbone',
+    'PseudoPerClassWeightedXLMRLanguageBackbone',
+    'PseudoPerClassWeightedBiomedCLIPLanguageBackbone',
+    'PseudoConcatProjXLMRLanguageBackbone',
+    'PseudoConcatProjBiomedCLIPLanguageBackbone',
+    'CytologySAVPE',
 ]

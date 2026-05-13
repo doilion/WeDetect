@@ -1,0 +1,92 @@
+[
+  [
+    "Serous effusion-Diseased cells"
+  ],
+  [
+    "Serous effusion-Negative samples"
+  ],
+  [
+    "TCT_CCD-agc_adenocarcinoma_em"
+  ],
+  [
+    "TCT_CCD-asch"
+  ],
+  [
+    "TCT_CCD-ascus"
+  ],
+  [
+    "TCT_CCD-dysbacteriosis_herpes_act"
+  ],
+  [
+    "TCT_CCD-ec"
+  ],
+  [
+    "TCT_CCD-hsil_scc_omn"
+  ],
+  [
+    "TCT_CCD-lsil"
+  ],
+  [
+    "TCT_CCD-monilia"
+  ],
+  [
+    "TCT_CCD-normal"
+  ],
+  [
+    "TCT_CCD-vaginalis"
+  ],
+  [
+    "Thyroid gland-AUC"
+  ],
+  [
+    "Thyroid gland-FC"
+  ],
+  [
+    "Thyroid gland-Macrophages"
+  ],
+  [
+    "Thyroid gland-NS"
+  ],
+  [
+    "Thyroid gland-Negative samples"
+  ],
+  [
+    "Thyroid gland-PTC"
+  ],
+  [
+    "Thyroid gland-SPTC"
+  ],
+  [
+    "Urine-AUC"
+  ],
+  [
+    "Urine-HGUC"
+  ],
+  [
+    "Urine-NHGUC"
+  ],
+  [
+    "Urine-SHGUC"
+  ],
+  [
+    "respiratory tract-Alveolar macrophages"
+  ],
+  [
+    "respiratory tract-Ciliated columnar epithelial cells"
+  ],
+  [
+    "respiratory tract-Diseased cells"
+  ],
+  [
+    "respiratory tract-Impurity"
+  ],
+  [
+    "respiratory tract-Lymphocyte"
+  ],
+  [
+    "respiratory tract-Neutrophil"
+  ],
+  [
+    "respiratory tract-Squamous epithelial cells"
+  ]
+]

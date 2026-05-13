@@ -1,0 +1,30 @@
+[
+  [
+    "Respiratory tract, bronchial brushing or EBUS-FNA specimen",
+    "PSC Category VI: Malignant — small cell carcinoma",
+    "Loose clusters and single small blue cells show nuclear molding, crush artifact, scant cytoplasm, very high N:C ratio, finely granular salt-and-pepper chromatin, absent nucleoli, and apoptotic bodies.",
+    "Necrosis, apoptotic debris and crush artifact; synaptophysin, chromogranin, CD56, TTF-1 positive; Ki-67 very high.",
+    "Nuclear molding with salt-and-pepper chromatin distinguishes this vs Lymphocyte, which lacks crush artifact and neuroendocrine marker expression."
+  ],
+  [
+    "Serous cavity, pleural/peritoneal/pericardial effusion cytology specimen",
+    "TIS Category V: MAL-S — metastatic adenocarcinoma NOS",
+    "Tight three-dimensional clusters, acini, papillae, or signet-ring cells show enlarged irregular nuclei, coarse chromatin, prominent nucleoli, high N:C ratio, and mucin-vacuolated cytoplasm.",
+    "Mucinous or necrotic effusion; claudin-4, MOC31, BerEP4, CEA positive; calretinin/WT1/D2-40 negative.",
+    "Claudin-4-positive glandular clusters with mucin distinguish this vs Mesothelioma, which is claudin-4 negative and shows mesothelial windows."
+  ],
+  [
+    "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "Bethesda V: Suspicious for malignancy — indeterminate malignant features",
+    "Limited clusters or papillary/microfollicular fragments show focal malignant-type nuclear enlargement, irregular membranes, grooves or nucleoli, increased N:C ratio, and scant-to-moderate delicate cytoplasm.",
+    "Scant colloid; CK19/HBME-1/galectin-3, calcitonin, or lymphoid markers selected by suspected tumor type.",
+    "Strong but insufficient malignant features distinguish this vs Bethesda VI Malignant, which has unequivocal cytology and confirmatory lineage."
+  ],
+  [
+    "Thyroid gland, ultrasound-guided FNA or cell-block specimen",
+    "Bethesda VI: Malignant — thyroid malignant tumor",
+    "Cellular cohesive or discohesive malignant population shows marked nuclear enlargement, irregular membranes, coarse chromatin, prominent nucleoli or grooves, high N:C ratio, mitoses, and lineage-dependent cytoplasm.",
+    "Necrosis or tumor matrix possible; PAX8/TTF-1/thyroglobulin, calcitonin, cytokeratin, or lymphoid markers classify lineage.",
+    "Unequivocal malignant cytology with lineage marker support distinguishes this vs Bethesda V Suspicious, which is limited or qualitatively incomplete."
+  ]
+]

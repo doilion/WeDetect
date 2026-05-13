@@ -1,0 +1,212 @@
+{
+  "Respiratory tract cytology - Neutrophil": [
+    51910,
+    59918,
+    161664,
+    130937,
+    217546
+  ],
+  "Respiratory tract cytology - Alveolar macrophage": [
+    87828,
+    120695,
+    123079,
+    258370,
+    261517
+  ],
+  "Respiratory tract cytology - Ciliated respiratory epithelial cell": [
+    114490,
+    127708,
+    380117,
+    134611,
+    266909
+  ],
+  "Respiratory tract cytology - Lymphocyte": [
+    133596,
+    56966,
+    207233,
+    206881,
+    225672
+  ],
+  "Respiratory tract cytology - Contaminant and debris": [
+    42125,
+    225458,
+    30605,
+    8746,
+    30744
+  ],
+  "Respiratory tract cytology - Squamous epithelial cell": [
+    389724,
+    74753,
+    301077,
+    217878,
+    377669
+  ],
+  "Respiratory tract cytology - Atypical or malignant cells, NOS": [
+    17504,
+    5669,
+    14141,
+    41013,
+    19570
+  ],
+  "Serous fluid cytology - Negative for malignancy (NFM)": [
+    420141,
+    424814,
+    418322,
+    406094,
+    414669
+  ],
+  "Serous fluid cytology - Atypical, suspicious, or malignant cells, NOS": [
+    415658,
+    422194,
+    416428,
+    409321,
+    404610
+  ],
+  "Thyroid cytopathology - Papillary thyroid carcinoma (Bethesda VI: Malignant)": [
+    483647,
+    466573,
+    436063,
+    446317,
+    499931
+  ],
+  "Thyroid cytopathology - Suspicious for papillary thyroid carcinoma (Bethesda V: Suspicious for malignancy)": [
+    477342,
+    458820,
+    518037,
+    475058,
+    505321
+  ],
+  "Thyroid cytopathology - Nondiagnostic or unsatisfactory specimen (Bethesda I)": [
+    480633,
+    513541,
+    513476,
+    429180,
+    511143
+  ],
+  "Thyroid cytopathology - Macrophage": [
+    528552,
+    542506,
+    539987,
+    514095,
+    515471
+  ],
+  "Thyroid cytopathology - Atypia of undetermined significance (AUS; Bethesda III)": [
+    483109,
+    485615,
+    481199,
+    534115,
+    544636
+  ],
+  "Thyroid cytopathology - Benign (Bethesda II)": [
+    425970,
+    426169,
+    426115,
+    426173,
+    425853
+  ],
+  "Thyroid cytopathology - Follicular epithelial cell": [
+    515588,
+    512979,
+    515681,
+    515779,
+    515700
+  ],
+  "Urinary cytology - Negative for high-grade urothelial carcinoma (NHGUC, Paris System)": [
+    667559,
+    640938,
+    633829,
+    605564,
+    615901
+  ],
+  "Urinary cytology - Suspicious for high-grade urothelial carcinoma (SHGUC)": [
+    577558,
+    703478,
+    667281,
+    676368,
+    574035
+  ],
+  "Urinary cytology - Atypical urothelial cells (AUC)": [
+    598086,
+    704611,
+    572758,
+    579519,
+    691584
+  ],
+  "Urinary cytology - High-grade urothelial carcinoma (HGUC)": [
+    703193,
+    703943,
+    704001,
+    703617,
+    702566
+  ],
+  "Cervical cytology - Negative for intraepithelial lesion or malignancy (NILM)": [
+    761084,
+    800041,
+    769962,
+    844765,
+    733009
+  ],
+  "Cervical cytology - Atypical squamous cells of undetermined significance (ASC-US)": [
+    778387,
+    757411,
+    783577,
+    742080,
+    756113
+  ],
+  "Cervical cytology - Atypical squamous cells, cannot exclude HSIL (ASC-H)": [
+    705425,
+    780079,
+    732502,
+    838270,
+    710829
+  ],
+  "Cervical cytology - Low-grade squamous intraepithelial lesion (LSIL)": [
+    730093,
+    758513,
+    754596,
+    810493,
+    735850
+  ],
+  "Cervical cytology - High-grade squamous intraepithelial lesion (HSIL), squamous cell carcinoma, or other malignant neoplasm": [
+    825725,
+    710883,
+    836421,
+    724661,
+    729946
+  ],
+  "Cervical cytology - Atypical glandular cells (AGC), adenocarcinoma, or endometrial cells": [
+    837788,
+    806368,
+    812818,
+    836266,
+    831685
+  ],
+  "Cervical cytology - Trichomonas vaginalis": [
+    719752,
+    714492,
+    742873,
+    755676,
+    728258
+  ],
+  "Cervical cytology - Fungal organisms morphologically consistent with Candida spp.": [
+    750968,
+    741373,
+    727869,
+    839274,
+    849617
+  ],
+  "Cervical cytology - Shift in flora suggestive of bacterial vaginosis, cellular changes consistent with herpes simplex virus (HSV), or bacteria morphologically consistent with Actinomyces spp.": [
+    801724,
+    795971,
+    794131,
+    786230,
+    794676
+  ],
+  "Cervical cytology - Endocervical and transformation-zone component": [
+    806574,
+    832408,
+    817232,
+    823100,
+    806878
+  ]
+}

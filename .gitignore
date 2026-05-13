@@ -70,20 +70,28 @@ venv.bak/
 *.swo
 *~
 
-# Model checkpoints and large files
+# Model checkpoints (large pretrained weights)
 checkpoints/
-*.pth
-*.pt
 *.onnx
 *.bin
 *.safetensors
 
-# Work directories (training outputs)
+# Work directories (training outputs, ~50GB)
 work_dirs/
 
-# Dataset
-data/
+# Dataset (raw patient data — never commit)
+# Use data/* + negate pattern to allow re-including data/texts/
+data/*
+# Allow text prompt JSONs + derived embedding caches (no PHI, needed for paper reproduction)
 !data/texts/
+
+# Block any .pth/.pt model weights anywhere EXCEPT data/texts/ (those are small derived caches)
+*.pt
+# global *.pth excluded so checkpoints/ catches model files; data/texts/.pth is allowed by negation
+**/checkpoint_*.pth
+**/epoch_*.pth
+**/best_*.pth
+**/last.pth
 
 # XLM-Roberta model files
 xlm-roberta-base/
@@ -103,3 +111,9 @@ Thumbs.db
 
 # Stray markers from external tools
 .codex
+
+# Claude Code agent state and local IDE config
+.claude/
+
+# Paper drafts — contain author identity (BibM double-blind review)
+paper/

@@ -77,7 +77,9 @@ declare -A SPLIT_ANN=(
 
 for SPLIT in main_3 pseudo_2 hard_4 full_5; do
     EVAL_DIR="${WORK_DIR}/eval_novel_${SPLIT}_thaf"
-    echo "  [$SPLIT] $(date)"
+    # Fix-7: tee split anchor INTO summary too (compile_ablation_table.py
+    # parses these anchors to attribute mAP lines to splits).
+    echo "  [$SPLIT] $(date)" | tee -a "$SUMMARY"
     PYTHONPATH="$REPO_ROOT" python tools/eval_novel_thaf.py \
         --config "$CONFIG" \
         --checkpoint "$BEST_CKPT" \

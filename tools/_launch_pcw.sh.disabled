@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+cd /home/25_liwenjie/code/WeDetect
+source /home/25_liwenjie/anaconda3/etc/profile.d/conda.sh
+conda activate wedetect
+mkdir -p work_dirs/wedetect_tiny_tct_ngc_dev30_pcw_biomedclip_2gpu
+CUDA_VISIBLE_DEVICES=0,1 PORT=29504 bash dist_train.sh \
+    config/wedetect_tiny_tct_ngc_dev30_pcw_biomedclip_2gpu.py 2

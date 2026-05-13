@@ -1,0 +1,23 @@
+{
+  "Positive for malignancy (PSC Category VI: Malignant): Squamous cell carcinoma": [
+    577,
+    316,
+    234,
+    99,
+    31
+  ],
+  "Malignant, secondary (MAL-S): Metastatic breast carcinoma": [
+    3705,
+    2474,
+    1463,
+    3684,
+    3756
+  ],
+  "Medullary thyroid carcinoma (Bethesda VI: Malignant)": [
+    8387,
+    5533,
+    9505,
+    8410,
+    9838
+  ]
+}

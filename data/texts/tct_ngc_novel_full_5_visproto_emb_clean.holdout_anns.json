@@ -1,0 +1,37 @@
+{
+  "Positive for malignancy (PSC Category VI: Malignant): Adenocarcinoma": [
+    1072,
+    1562,
+    1606,
+    675,
+    2784
+  ],
+  "Malignant, secondary (MAL-S): Metastatic ovarian carcinoma": [
+    9466,
+    15056,
+    6857,
+    17642,
+    13954
+  ],
+  "Positive for malignancy (PSC Category VI: Malignant): Squamous cell carcinoma": [
+    2266,
+    1789,
+    3029,
+    2397,
+    1775
+  ],
+  "Malignant, secondary (MAL-S): Metastatic breast carcinoma": [
+    10080,
+    4818,
+    10101,
+    5415,
+    10969
+  ],
+  "Medullary thyroid carcinoma (Bethesda VI: Malignant)": [
+    25508,
+    21770,
+    22913,
+    21345,
+    24979
+  ]
+}

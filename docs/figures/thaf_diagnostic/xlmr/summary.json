@@ -1,0 +1,66 @@
+{
+  "encoder": "xlmr",
+  "checkpoint": "work_dirs/wedetect_tiny_tct_ngc_dev30_thaf_xlmr_2gpu/best_coco_bbox_mAP_epoch_10.pth",
+  "embed_dim": 768,
+  "num_classes_total": 39,
+  "num_base": 30,
+  "num_novel": 9,
+  "alpha_trained": -0.0002960014680866152,
+  "attr_type_embed_l2_norms": [
+    0.4857553243637085,
+    0.47801488637924194,
+    0.4890202283859253,
+    0.480296790599823,
+    0.5088303685188293
+  ],
+  "attr_field_order": [
+    "organ_specimen",
+    "diagnostic_code",
+    "cytomorphology",
+    "background_and_immunoprofile",
+    "key_distinguishing_feature"
+  ],
+  "trained_fusion": {
+    "base_base_off_diag": {
+      "mean": 0.9778042435646057,
+      "max": 0.99410080909729,
+      "std": 0.005593486595898867
+    },
+    "novel_novel_off_diag": {
+      "mean": 0.9797242283821106,
+      "max": 0.9914383888244629,
+      "std": 0.006738869473338127
+    },
+    "novel_base": {
+      "mean": 0.9778186082839966,
+      "max": 0.9911670684814453
+    }
+  },
+  "attr_mean_baseline": {
+    "base_base_off_diag": {
+      "mean": 0.9810670614242554,
+      "max": 0.9949675798416138,
+      "std": 0.004814124666154385
+    },
+    "novel_novel_off_diag": {
+      "mean": 0.9826242923736572,
+      "max": 0.9927260875701904,
+      "std": 0.005848853848874569
+    },
+    "novel_base": {
+      "mean": 0.9810391068458557,
+      "max": 0.9924865961074829
+    }
+  },
+  "phase2_references_max_novel_novel_cos": {
+    "v2_psc_single_prompt": 0.996,
+    "5attr_static_sum": 0.993,
+    "5attr_static_weighted": 0.991,
+    "5attr_static_concat": 0.971,
+    "5attr_static_only_distinguish": 0.971
+  },
+  "hypothesis_hits": [
+    "**A refuted (fusion separates novel better)**: trained novel↔novel max 0.991 < attr_mean 0.993",
+    "alpha=-0.000 ≈ init — fusion light, attr_mean dominant"
+  ]
+}

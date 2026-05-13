@@ -1,0 +1,30 @@
+{
+  "Positive for malignancy (PSC Category VI: Malignant): Small cell carcinoma": [
+    289,
+    140,
+    43,
+    312,
+    224
+  ],
+  "Malignant, secondary (MAL-S): Metastatic adenocarcinoma": [
+    509,
+    428,
+    422,
+    548,
+    514
+  ],
+  "Suspicious for malignancy (Bethesda V)": [
+    745,
+    3010,
+    620,
+    960,
+    770
+  ],
+  "Malignant (Bethesda VI)": [
+    2284,
+    2487,
+    2307,
+    2517,
+    2452
+  ]
+}

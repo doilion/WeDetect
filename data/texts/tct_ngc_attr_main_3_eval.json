@@ -1,0 +1,23 @@
+[
+  [
+    "Respiratory tract, bronchial brushing or lung FNA specimen",
+    "PSC Category VI: Malignant — squamous cell carcinoma",
+    "Syncytial sheets and isolated keratinized cells show pleomorphic hyperchromatic irregular nuclei, coarse chromatin, variable nucleoli, high N:C ratio, dense orangeophilic cytoplasm, and intercellular bridges.",
+    "Tumor diathesis with necrosis and keratin debris; p40, CK5/6, p63 positive; TTF-1/napsin A negative.",
+    "Intercellular bridges and orangeophilic keratinization distinguish this vs Adenocarcinoma, which shows glandular clusters, mucin vacuoles, and TTF-1/napsin A."
+  ],
+  [
+    "Serous cavity, pleural effusion or peritoneal fluid specimen",
+    "TIS Category V: MAL-S — metastatic breast ductal carcinoma",
+    "Cohesive balls, morules, and single malignant cells show enlarged pleomorphic nuclei, irregular membranes, coarse chromatin, prominent nucleoli, high N:C ratio, and moderate vacuolated cytoplasm.",
+    "Proteinaceous effusion with macrophages; GATA3, TRPS1, ER, mammaglobin/GCDFP-15 positive; calretinin/WT1 negative.",
+    "GATA3/TRPS1-positive morules distinguish this vs Mesothelioma, which shows mesothelial windows and calretinin/D2-40 positivity."
+  ],
+  [
+    "Thyroid gland, ultrasound-guided fine-needle aspiration specimen",
+    "Bethesda VI: Malignant — medullary thyroid carcinoma",
+    "Discohesive plasmacytoid, spindle, or epithelioid cells show eccentric nuclei, coarse salt-and-pepper chromatin, occasional pseudoinclusions, variable N:C ratio, and granular amphophilic cytoplasm.",
+    "Amyloid may be present; calcitonin, CEA, chromogranin, synaptophysin positive; thyroglobulin negative; RET testing relevant.",
+    "Calcitonin-positive tumor with amyloid distinguishes this vs Follicular neoplasm, which expresses thyroglobulin and lacks neuroendocrine chromatin."
+  ]
+]

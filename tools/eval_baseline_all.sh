@@ -10,8 +10,10 @@
 #   6. Procrustes R refit (base text ↔ base visproto)
 #   7. Procrustes-calfused emb × 4 splits + eval (DEAD-5 verify on new ckpt)
 #   8. Score fusion × 4 splits (merge v2-text preds + visproto preds per class)
+#   9. THAF + score fusion × 4 splits × 2 encoders (merge preds_thaf + visproto;
+#      skips silently if THAF eval hasn't been run for that encoder)
 #
-# All 4 strategy-eval results are tee'd to a single summary file for ablation.
+# All eval results are tee'd to a single summary file for ablation.
 #
 # Usage:
 #   bash tools/eval_baseline_all.sh [<CKPT>]
@@ -30,12 +32,18 @@ WORK_DIR="work_dirs/wedetect_tiny_tct_ngc_dev30_cache640_fullnames_disjoint_clea
 
 # Safety guard 1: refuse to run while training process is still active —
 # best_*.pth keeps updating mid-training, and stealing a training GPU for
-# eval can OOM the training run. Match by config-name substring; will catch
-# both `dist_train.sh ... disjoint_clean_2gpu.py` and the torchrun children.
-ACTIVE_PIDS=$(pgrep -f 'disjoint_clean_2gpu' | grep -v "^$$\$" || true)
+# eval can OOM the training run. Match the actual training processes:
+# `dist_train.sh ... disjoint_clean_2gpu.py` or `train.py ... disjoint_clean_2gpu`.
+# Narrower than just `disjoint_clean_2gpu` (which would also match this script's
+# own argv since work_dir contains that substring).
+# Fix-8: pgrep -f default BRE alternation `\|` isn't portable; run two pgreps
+# and merge instead.
+P_TRAINPY=$(pgrep -f 'train\.py.*disjoint_clean_2gpu' || true)
+P_DISTSH=$(pgrep -f 'dist_train.*disjoint_clean_2gpu' || true)
+ACTIVE_PIDS=$(printf '%s\n%s\n' "$P_TRAINPY" "$P_DISTSH" | sort -u | grep -v '^$' || true)
 if [[ -n "$ACTIVE_PIDS" ]]; then
     echo "ERROR: clean dev30 training is still running. Wait for it to finish."
-    echo "  (active PIDs: $(echo $ACTIVE_PIDS | tr '\n' ' '))"
+    echo "  (active training PIDs: $(echo $ACTIVE_PIDS | tr '\n' ' '))"
     exit 1
 fi
 
@@ -106,7 +114,7 @@ echo "[2/8] v2 text baseline × 4 splits  (--outfile-prefix saved for score fusi
 echo "## Step 2 — v2 text baseline novel × 4 splits" >> "$SUMMARY"
 for SPLIT in main_3 pseudo_2 hard_4 full_5; do
     EVAL_DIR="${WORK_DIR}/eval_novel_${SPLIT}_v2text_${TAG}"
-    echo "  [$SPLIT-v2text]"
+    echo "  [$SPLIT-v2text]" | tee -a "$SUMMARY"
     PYTHONPATH="$REPO_ROOT" python tools/eval_novel_split.py \
         --config "$CONFIG" \
         --checkpoint "$CKPT" \
@@ -145,7 +153,7 @@ echo "[4/8] build novel visproto × 4 splits"
 echo "## Step 4 — novel visproto × 4 splits" >> "$SUMMARY"
 for SPLIT in main_3 pseudo_2 hard_4 full_5; do
     NOVEL_VISPROTO="${TEXT_DIR}/tct_ngc_novel_${SPLIT}_visproto_emb_${TAG}.pth"
-    echo "  [$SPLIT-visproto-build] → $NOVEL_VISPROTO"
+    echo "  [$SPLIT-visproto-build] → $NOVEL_VISPROTO" | tee -a "$SUMMARY"
     PYTHONPATH="$REPO_ROOT" python tools/build_visual_prototype.py \
         --config "$CONFIG" \
         --checkpoint "$CKPT" \
@@ -167,7 +175,7 @@ echo "## Step 5 — visproto-only eval × 4 splits" >> "$SUMMARY"
 for SPLIT in main_3 pseudo_2 hard_4 full_5; do
     EVAL_DIR="${WORK_DIR}/eval_novel_${SPLIT}_visproto_${TAG}"
     NOVEL_VISPROTO="${TEXT_DIR}/tct_ngc_novel_${SPLIT}_visproto_emb_${TAG}.pth"
-    echo "  [$SPLIT-visproto-eval]"
+    echo "  [$SPLIT-visproto-eval]" | tee -a "$SUMMARY"
     PYTHONPATH="$REPO_ROOT" python tools/eval_novel_split.py \
         --config "$CONFIG" \
         --checkpoint "$CKPT" \
@@ -234,7 +242,7 @@ print(f'$SPLIT calfused: {len(fused)} classes saved → $NOVEL_CALFUSED')
 "
 
     EVAL_DIR="${WORK_DIR}/eval_novel_${SPLIT}_calfused_${TAG}"
-    echo "  [$SPLIT-calfused-eval]"
+    echo "  [$SPLIT-calfused-eval]" | tee -a "$SUMMARY"
     PYTHONPATH="$REPO_ROOT" python tools/eval_novel_split.py \
         --config "$CONFIG" \
         --checkpoint "$CKPT" \
@@ -250,7 +258,7 @@ echo >> "$SUMMARY"
 # Step 8: Score fusion × 4 splits
 # ────────────────────────────────────────────────────────────────────
 echo
-echo "[8/8] score fusion × 4 splits  (merge v2 text + visproto preds per class)"
+echo "[8/9] score fusion × 4 splits  (merge v2 text + visproto preds per class)"
 echo "## Step 8 — Score fusion × 4 splits" >> "$SUMMARY"
 for SPLIT in main_3 pseudo_2 hard_4 full_5; do
     TEXT_PREDS="${WORK_DIR}/eval_novel_${SPLIT}_v2text_${TAG}/preds_v2text.bbox.json"
@@ -259,16 +267,51 @@ for SPLIT in main_3 pseudo_2 hard_4 full_5; do
     OUT_MERGED="${WORK_DIR}/eval_novel_${SPLIT}_scorefuse_${TAG}/preds_scorefuse.bbox.json"
 
     if [[ ! -f "$TEXT_PREDS" ]] || [[ ! -f "$VIS_PREDS" ]]; then
-        echo "  [$SPLIT] SKIP — missing predictions ($TEXT_PREDS or $VIS_PREDS)"
+        echo "  [$SPLIT] SKIP — missing predictions ($TEXT_PREDS or $VIS_PREDS)" | tee -a "$SUMMARY"
         continue
     fi
     mkdir -p "$(dirname "$OUT_MERGED")"
-    echo "  [$SPLIT-scorefuse]"
+    echo "  [$SPLIT-scorefuse]" | tee -a "$SUMMARY"
     PYTHONPATH="$REPO_ROOT" python tools/fuse_novel_predictions.py \
         --text-preds "$TEXT_PREDS" \
         --vis-preds "$VIS_PREDS" \
         --gt-ann "$GT_ANN" \
         --out "$OUT_MERGED" 2>&1 | tee -a "$SUMMARY" | grep -E 'AP @\[ IoU=0.50:0.95.*all.*100' | head -1
+done
+echo >> "$SUMMARY"
+
+# ────────────────────────────────────────────────────────────────────
+# Step 9: THAF + score fusion × 4 splits (Fix-11)
+#
+# Merges THAF predictions (preds_thaf.bbox.json saved by
+# tools/eval_thaf_all_splits.sh) with visproto predictions (this script's
+# step 5 output). Same per-class routing rule as step 8 — Serous/breast/
+# ovarian → THAF; Resp/Thyroid → visproto. Skips silently if THAF preds
+# are missing (e.g. THAF eval hasn't been run for the chosen encoder yet).
+# ────────────────────────────────────────────────────────────────────
+echo
+echo "[9/9] THAF + score fusion × 4 splits  (merge preds_thaf + preds_visproto per class)"
+echo "## Step 9 — THAF + score fusion × 4 splits" >> "$SUMMARY"
+for ENCODER in xlmr biomedclip; do
+    THAF_DIR="work_dirs/wedetect_tiny_tct_ngc_dev30_thaf_${ENCODER}_2gpu"
+    echo "### THAF encoder: ${ENCODER}" >> "$SUMMARY"
+    for SPLIT in main_3 pseudo_2 hard_4 full_5; do
+        THAF_PREDS="${THAF_DIR}/eval_novel_${SPLIT}_thaf/preds_thaf.bbox.json"
+        VIS_PREDS="${WORK_DIR}/eval_novel_${SPLIT}_visproto_${TAG}/preds_visproto.bbox.json"
+        GT_ANN="${DATA_ROOT_TEST}${SPLIT_ANN[$SPLIT]}"
+        OUT_MERGED="${THAF_DIR}/eval_novel_${SPLIT}_thaf_scorefuse/preds_scorefuse.bbox.json"
+        if [[ ! -f "$THAF_PREDS" ]] || [[ ! -f "$VIS_PREDS" ]]; then
+            echo "  [${ENCODER}-${SPLIT}] SKIP — missing $THAF_PREDS or $VIS_PREDS" | tee -a "$SUMMARY"
+            continue
+        fi
+        mkdir -p "$(dirname "$OUT_MERGED")"
+        echo "  [${ENCODER}-${SPLIT}-thaf_scorefuse]" | tee -a "$SUMMARY"
+        PYTHONPATH="$REPO_ROOT" python tools/fuse_novel_predictions.py \
+            --text-preds "$THAF_PREDS" \
+            --vis-preds "$VIS_PREDS" \
+            --gt-ann "$GT_ANN" \
+            --out "$OUT_MERGED" 2>&1 | tee -a "$SUMMARY" | grep -E 'AP @\[ IoU=0.50:0.95.*all.*100' | head -1
+    done
 done
 echo >> "$SUMMARY"
 

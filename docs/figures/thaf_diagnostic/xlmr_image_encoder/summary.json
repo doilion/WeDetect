@@ -1,0 +1,120 @@
+{
+  "encoder": "xlmr",
+  "embed_dim": 768,
+  "checkpoint": "work_dirs/wedetect_tiny_tct_ngc_dev30_thaf_xlmr_2gpu/best_coco_bbox_mAP_epoch_10.pth",
+  "n_per_class": 30,
+  "n_base": 30,
+  "n_novel": 9,
+  "base": {
+    "n": 900,
+    "gt_cos_mean": -0.28461785197257994,
+    "gt_cos_std": 0.023261235917810798,
+    "gt_cos_max": -0.24108290672302246,
+    "gt_cos_min": -0.4994903802871704,
+    "top1_cos_mean": -0.2814914248387019,
+    "top1_acc": 0.5444444444444444,
+    "top1_is_base_rate": 0.8777777777777778
+  },
+  "novel": {
+    "n": 263,
+    "gt_cos_mean": -0.30429928724303446,
+    "gt_cos_std": 0.019908417421337872,
+    "gt_cos_max": -0.2610055208206177,
+    "gt_cos_min": -0.3447182774543762,
+    "top1_cos_mean": -0.29093964698196817,
+    "top1_acc": 0.03802281368821293,
+    "top1_is_base_rate": 0.7034220532319392
+  },
+  "per_novel_class": {
+    "respiratory tract-adenocarcinoma": {
+      "n": 29,
+      "gt_cos_mean": -0.2986825982044483,
+      "gt_cos_std": 0.01802136673432106,
+      "gt_cos_max": -0.27019205689430237,
+      "gt_cos_min": -0.33512020111083984,
+      "top1_cos_mean": -0.28494436781981897,
+      "top1_acc": 0.0,
+      "top1_is_base_rate": 0.9310344827586207
+    },
+    "Serous effusion-Ovarian cancer": {
+      "n": 30,
+      "gt_cos_mean": -0.30416068037350974,
+      "gt_cos_std": 0.01502716188831592,
+      "gt_cos_max": -0.2742650508880615,
+      "gt_cos_min": -0.3345164358615875,
+      "top1_cos_mean": -0.2975303947925568,
+      "top1_acc": 0.06666666666666667,
+      "top1_is_base_rate": 0.8
+    },
+    "respiratory tract-Squamous cell carcinoma": {
+      "n": 30,
+      "gt_cos_mean": -0.2878356794516245,
+      "gt_cos_std": 0.016255785957969116,
+      "gt_cos_max": -0.2610055208206177,
+      "gt_cos_min": -0.3174382746219635,
+      "top1_cos_mean": -0.28448024292786916,
+      "top1_acc": 0.26666666666666666,
+      "top1_is_base_rate": 0.7333333333333333
+    },
+    "Serous effusion-Breast cancer": {
+      "n": 30,
+      "gt_cos_mean": -0.30243158638477324,
+      "gt_cos_std": 0.011583747682855604,
+      "gt_cos_max": -0.2812831401824951,
+      "gt_cos_min": -0.3315976560115814,
+      "top1_cos_mean": -0.29491292337576547,
+      "top1_acc": 0.0,
+      "top1_is_base_rate": 0.5
+    },
+    "Thyroid gland-MTC": {
+      "n": 30,
+      "gt_cos_mean": -0.332008487979571,
+      "gt_cos_std": 0.005840187492156857,
+      "gt_cos_max": -0.32154911756515503,
+      "gt_cos_min": -0.3447182774543762,
+      "top1_cos_mean": -0.32083177864551543,
+      "top1_acc": 0.0,
+      "top1_is_base_rate": 0.6
+    },
+    "respiratory tract-Small cell carcinoma": {
+      "n": 28,
+      "gt_cos_mean": -0.29206960116113934,
+      "gt_cos_std": 0.013093234881198089,
+      "gt_cos_max": -0.26733142137527466,
+      "gt_cos_min": -0.31289100646972656,
+      "top1_cos_mean": -0.2762716306107385,
+      "top1_acc": 0.0,
+      "top1_is_base_rate": 0.9642857142857143
+    },
+    "Serous effusion-adenocarcinoma": {
+      "n": 28,
+      "gt_cos_mean": -0.2949387665305819,
+      "gt_cos_std": 0.01790720720258208,
+      "gt_cos_max": -0.2668032646179199,
+      "gt_cos_min": -0.3226654529571533,
+      "top1_cos_mean": -0.2842947957771165,
+      "top1_acc": 0.0,
+      "top1_is_base_rate": 0.7857142857142857
+    },
+    "Thyroid gland-Suspicious for Malignancy": {
+      "n": 28,
+      "gt_cos_mean": -0.30810233844178064,
+      "gt_cos_std": 0.01882514459300057,
+      "gt_cos_max": -0.26957863569259644,
+      "gt_cos_min": -0.33906444907188416,
+      "top1_cos_mean": -0.28370042570999693,
+      "top1_acc": 0.0,
+      "top1_is_base_rate": 0.5714285714285714
+    },
+    "Thyroid gland-Malignant tumour": {
+      "n": 30,
+      "gt_cos_mean": -0.31709081331888833,
+      "gt_cos_std": 0.015521658079132649,
+      "gt_cos_max": -0.28711211681365967,
+      "gt_cos_min": -0.3413723111152649,
+      "top1_cos_mean": -0.28938694794972736,
+      "top1_acc": 0.0,
+      "top1_is_base_rate": 0.4666666666666667
+    }
+  }
+}

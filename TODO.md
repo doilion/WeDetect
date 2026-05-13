@@ -15,16 +15,129 @@
 | **DEAD-3** | **Per-variant L2-normalize 后再平均** | 同上 | 跟 raw 内积架构不兼容 |
 | **DEAD-4** | **Raw text+visproto 单次 inference 二元路由（binary fusion）** | main_3 Breast **0.454 → 0.000**；text 类被 visproto 类系统性挤死 | text(XLM-R) 与 visproto(cls_preds) 几何不同，单 inference 内 visproto 对图像 cosine 天然高 |
 | **DEAD-5** | **Procrustes 对齐后的 visproto + text 单次 inference 二元路由（calfused）** | text 类救回（main_3 Breast 0.447 ✅）但 visproto 类全死（Resp-Adeno **0.095 → 0.000**，Thyroid-Sus **0.079 → 0.009**）；4 splits **全部低于 score fusion** | **R 不是 novel-transferable**：base 类对(text↔vis) 拟合 cos −0.30 → 0.97 ✅；但 **calibrated visproto SOLO eval（main_3）mAP = 0.005**（vs raw visproto 0.042，跌 87%）—— 证实 R 旋转 novel visproto 后落到 text 空间错位置，不是单 inference 混合的问题。Procrustes 对 novel-class transfer **不 generalize** |
+| **DEAD-6** | **THAF cross-attention fusion module 设计** (Phase 3a/3b, 2026-05-11) | 训练 12 ep 后 XLM-R alpha=**−0.0003**，BiomedCLIP alpha=**−0.0001**（init 0.3）→ `output = α · cross_attn + (1−α) · attr_mean` ≈ **attr_mean**。3.15M-7.1M fusion 参数全部 effectively dead | output_proj gain=0.1 太小信号弱；attr_mean 本身是优秀梯度 sink；优化器选择 "shrink alpha → 0" 而非"调 cross-attention 让它有用"。**论文不能讲"trainable fusion"是创新点** —— 实测 fusion 等价于 mean pool |
+| **DEAD-7** | **THAF (任何 encoder) 解决 novel zero-shot** (Phase 3a/3b, 2026-05-11; avg 重算 2026-05-12) | avg over 9 unique novel cls：THAF + XLM-R = **0.020**；THAF + BiomedCLIP = **0.041**；vs v2 baseline **0.108** —— **THAF novel 反跌 60-80%**！Phase 3.6 image encoder diagnostic：**99.2% 的 novel image** 经 image encoder 输出后 top-1 落到 base class（即使 GT 是 novel）；mean cos to GT class = **−0.18** (BiomedCLIP) / **−0.30** (XLM-R) —— **novel image feature 跟 novel 文本方向反向** | Image encoder 训练时 specialize 到 base 30 类的 attribute mean 方向；novel zero-shot 失败的真因是 **image encoder 端 overfit**（不是之前以为的 text encoder cos collision）。class vector 几何 OK（novel↔novel max cos < 0.94，可分），但 image feature 不对齐 |
+| **DEAD-8** | **GPU throttle / NCCL / LR overlap = dev32→dev30 1pp drop 根因** | clean dev30 重训（fix GPU 1 throttle + stable 2GPU + LR begin=2）：base 25-cls **0.310** ≈ 旧 0.306（Δ within noise）。per-class diff 显示 dev32→dev30 的 −1pp 来自 3 个**不相干**类的 large drop（Thyroid-Macrophages −0.118 / Urine-SHGUC −0.070 / respiratory-Diseased −0.054）+ 1 类 large gain (+0.077)，21 类不变 | dev32→dev30 的 "1pp drop" 是 **single-run 训练 noise**（不同 RNG state / data shuffle），不是 systematic effect。修不修都救不回来。论文 headline 直接用 clean dev30 baseline = **0.310** |
+| **DEAD-9** | **BiomedCLIP encoder swap 让 novel text 路径更好** (2026-05-12) | noTHAF (BiomedCLIP + 1 PSC) text-only avg novel (9 unique) = **0.005** 🔻🔻 vs XLM-R baseline 0.108（**95% 暴跌**）。strict zero-shot 4 splits 都是 0.001-0.007 | BiomedCLIP 给 image encoder 提供了更 sharp 的 contrastive 目标 → image encoder 学到更可分的 feature 空间但**更 specialize 到 base 30 类 text 方向**。Novel text encoding 是新方向 → image feature 不指向，被推到 base anchors。**BiomedCLIP text 在 novel 上比 XLM-R 更糟糕**（虽然 base 上 +1.1pp）|
+| **DEAD-10** | **Score fusion per-class routing 在不同 ckpt 上通用** (2026-05-12) | noTHAF + score fusion avg novel = **0.023** 🔻 vs noTHAF + visproto-only **0.123** ✅；fusion 反而比单源差 5x！原因是 `fuse_novel_predictions.py` 的路由规则基于 XLM-R 历史统计，对 BiomedCLIP encoder 完全失效（错误把 Serous-Breast、Serous-Ovarian 等路由给 text，但 noTHAF text 在这些类上几乎 0） | Per-class routing 不是 encoder-agnostic 的。换 ckpt 必须重新 calibrate；当前 noTHAF 直接用 visproto-only 即可 |
 
 **核心教训**：
 1. WeDetect 的 PseudoLanguageBackbone 用**冻结缓存 + raw 内积**，**任何 inference-only 后处理都救不了 novel zero-shot**。
 2. **同一次 inference 内混 text + visproto 不可行**（DEAD-4/5 双向都失败）—— 几何不匹配靠 rotation 救不了；唯一 work 的是 **post-hoc score fusion**（两次独立 inference + per-class 合并预测）。
+3. **THAF 失败教训**（DEAD-6/7，2026-05-11 实证）：
+   - Trainable fusion 模块**自我归零**（alpha→0），不能当架构创新
+   - 文本端 cos saturation **不是** novel zero-shot 主因（5-attr mean 已经够 separable）
+   - 真正的瓶颈是 **image encoder 端**——novel 图像 feature 跟 novel 文本方向**反向**，被推到 base anchors 附近
+4. **dev32 → dev30 1pp drop 是 noise 不是 systematic**（DEAD-8），重训没意义
 
-要改进必须从下面三条路之一走：
+要改进必须走下面这些路：
 
-1. **post-hoc score fusion**（item 13.5，已验证 ✅，所有 4 splits 上都 ≥ 单源最优）
-2. **换 text encoder**（item 15，需要重训）
-3. **train-time prompt augmentation / hierarchical attribute training**（item 17/19，需要重训）
+1. **post-hoc score fusion**（item 13.5，已验证 ✅，所有 4 splits 上都 ≥ 单源最优；当前临床部署推荐方案）
+2. **5-attr + BiomedCLIP + mean pool**（实证 ✅，base +1.7pp）—— 但 novel 端反跌（DEAD-7）。论文 §A 候选但要砍掉 fusion module
+3. **Multi-modal class encoder w/ train-time visual prompts**（Phase 5，**核心方法**）—— image encoder 端 intervention 解 DEAD-7
+4. **不再做**：调 THAF cross-attention 内部架构（反正会被训成 0，除非 alpha 强约束）；NHGUC merge 反复实验（DEAD-8 noise）
+
+---
+
+## 🏆 当前最佳 baseline（2026-05-12 实证，avg novel = mean over 9 unique novel cls）
+
+| Method | Base 25-cls | Avg novel (9 unique) | 备注 |
+|---|---:|---:|---|
+| 旧最佳 (XLM-R + score fusion) | 0.310 | 0.112 | 5-shot leakage |
+| **noTHAF + visproto-only** ✅ | **0.321** | **0.122** | 5-shot leakage |
+| **noTHAF + visproto strict zero-shot** ✅ | 0.321 | **0.123** | **严格 zero-shot（排除 exemplar 图像）**，leakage 贡献 0 |
+
+→ Visual prompt baseline 真实有效，比之前最佳 +10%（绝对 +1.1pp）。
+
+注：原"avg novel"为 4-split 算术均值（含 full_5 双重计算 main_3+pseudo_2），已统一改用 mean over 9 unique novel = `(3·main_3 + 2·pseudo_2 + 4·hard_4) / 9`。
+
+详见 `docs/tct_ngc_nothaf_visproto_ablation_20260512.md`。
+
+---
+
+## 🚀 Phase 5: Multi-Modal Class Encoder（核心方法，待启动）
+
+### 设计（受 YOLOE SAVPE 启发）
+
+```
+TC-MMCE (Cytology Multi-Modal Class Encoder):
+  - text branch: BiomedCLIP encoder (frozen) + 5-attr structured prompts
+  - vis branch:  CytologySAVPE (spatial-mask on ConvNext FPN)
+  - fusion: text_emb + vis_emb (or each alone via modality dropout)
+  - alignment loss: λ · ||text_emb - vis_emb||²
+
+训练时 modality dropout 33/33/34（text-only / vis-only / both）
+推理三种模式：
+  Mode A: 0-shot text only
+  Mode B: 5-shot visual only
+  Mode C: text + visual mixed
+```
+
+### 工程拆解
+
+| # | Task | 时间 | GPU |
+|---|---|---|---|
+| 1 | `wedetect/models/backbones/cytology_savpe.py` | 2h | 0 |
+| 2 | `wedetect/datasets/transforms/visual_prompt_sampler.py` | 2h | 0 |
+| 3 | `MultiModalClassBackbone`（双路 + modality dropout） | 3h | 0 |
+| 4 | config | 1h | 0 |
+| 5 | smoke test | 1h | 1h |
+| 6 | 训练 12 epoch | (启动) | 8h × 2 GPU |
+| 7 | Eval 全套（4 splits × {0-shot, 5-shot}） | 0.5 天 | 1h |
+| **总** | | **1 工程日 + 10 GPU 小时** | |
+
+预期：novel strict zero-shot 0.123 → **0.17-0.22**（+50-100%）；base 守 0.32+
+
+详见 `docs/tct_ngc_phase5_plan_20260511.md`。
+
+---
+
+## 🥊 YOLOE 对比实验（新加，2026-05-12）
+
+YOLOE 是 SOTA visual prompt 方法（CVPR'24 后续），跑同 TCT_NGC dataset 作 §3.2 baseline 对比。
+
+### 代码位置 + 资源
+- 代码：`/home/25_liwenjie/code/yoloe`（已存在）
+- Conda env：`yoloe`（独立环境）
+- 已有：`medical_class_embeddings_proper.pt`（之前准备过的医学 embedding）
+- 训练脚本：
+  - `train_pe_det.py`（10 epoch linear probing）
+  - `train_pe_all_det.py`（完整 fine-tune）
+  - `train_vp.py`（2 epoch SAVPE）
+
+### 工程拆解
+| # | Task | 时间 | GPU |
+|---|---|---|---|
+| 1 | 把 TCT_NGC COCO 标注转 YOLO format（split: base 30 train / val） | 0.5 天 | 0 |
+| 2 | 构建 dataset yaml + class name 文件 | 0.5h | 0 |
+| 3 | Linear probing on base 30（`train_pe_det.py` 10 epoch） | (启动) | 4h × 1 GPU |
+| 4 | Visual prompt 阶段（`train_vp.py` 2 epoch） | (启动) | 2h × 1 GPU |
+| 5 | Eval 4 novel splits with text prompt（`predict_text_prompt.py`） | 0.5h | 0.5h |
+| 6 | Eval 4 novel splits with visual prompt（`predict_visual_prompt.py`） | 0.5h | 0.5h |
+| 7 | 比较数据写进 ablation 表 | 0.5h | 0 |
+| **总** | | **1.5 工程日 + 7 GPU 小时** | |
+
+期望比较：
+- YOLOE text prompt vs 我们 noTHAF text (0.004) — 应该 YOLOE 强很多
+- YOLOE visual prompt vs 我们 noTHAF + visproto (0.123, mean over 9 unique novel) — 这是关键对比，verify 我们是否真比 SOTA 好
+
+---
+
+## Image encoder 替换 BiomedCLIP ViT？（2026-05-12 决策）
+
+**结论**：**不推荐立刻做**，先 Phase 5（保 ConvNext）+ YOLOE 对比；如果都 work 后期考虑。
+
+| 方案 | 优 | 劣 |
+|---|---|---|
+| **保留 ConvNext + SAVPE**（Phase 5 当前 plan）| 工程量小（1 工程日 + 8h GPU），保留 WeDetect 训练好的 detection backbone，跟 base 25-cls 0.321 保持兼容 | 还是要 alignment loss 让 image feat 跟 BiomedCLIP text 对齐 |
+| **换成 BiomedCLIP ViT**（Phase 5+ 重设）| Image 跟 text 同 pretraining 空间，不需要 alignment loss | ViT 多尺度 detection 不如 ConvNext + FPN；需要重设 neck + head；从头训 ~30+ ep；BiomedCLIP ViT 是 classification 预训练，**不是 detection-oriented**；丢掉 WeDetect 现有的 base 25-cls 0.321 |
+| **混合：ConvNext for detection + BiomedCLIP ViT as visual prompt encoder**（折中）| 不动 detection backbone；visual prompt 用 BiomedCLIP image encoder 编码 | visual prompt 跟 detection feature 在不同空间，又回到需要 projection / alignment |
+
+**推荐路径**：
+1. **先做 Phase 5 Level 1**（ConvNext + SAVPE，~1 工程日）—— 跟当前 baseline 兼容
+2. **同时跑 YOLOE 对比**（已有现成代码，~1.5 工程日）
+3. **如果**: Phase 5 出来不如 YOLOE 且分析显示瓶颈在 image encoder
+4. **则**: Phase 5+ Level 3 重设（BiomedCLIP ViT），但这是 2-3 周工程
 
 ---
 
@@ -397,9 +510,41 @@ class HierarchicalLoadText:
 
 ---
 
-## Novel zero-shot 已跑实验汇总（2026-05-09）
+## Phase 3 THAF 最终结果（2026-05-11，clean ckpt + 修好的 eval pipeline）
 
-dev30 best ckpt (ep9 mAP 0.283) × 4 splits × 4 策略：
+详见 `docs/tct_ngc_phase3_thaf_results_analysis_20260511.md` 完整分析。
+
+### 完整 ablation 表（clean dev30 ckpt + THAF × 2 encoder）
+
+注：`Avg novel = (3·main_3 + 2·pseudo_2 + 4·hard_4) / 9`，full_5 单列不入 avg（2026-05-12 公式）。
+
+| Method | Base 25-cls | main_3 | pseudo_2 | hard_4 | _full_5_ | **Avg novel (9 unique)** |
+|---|---:|---:|---:|---:|---:|---:|
+| v2 baseline (XLM-R single PSC) | **0.310** | 0.134 | 0.108 | 0.088 | _0.049_ | **0.108** |
+| score fusion (text + raw visproto post-hoc) | 0.310 | 0.137 | 0.108 | 0.095 | _0.051_ | **0.112** ← 部署最优 |
+| Procrustes calfused (DEAD-5 verify) | 0.310 | 0.132 | 0.092 | 0.002 | _0.045_ | 0.065 |
+| THAF + XLM-R | 0.302 | 0.021 | 0.033 | 0.013 | _0.013_ | **0.020** 🔻 |
+| **THAF + BiomedCLIP** ← method §A 主结果 | **0.327** ✨ | 0.009 | 0.137 | 0.017 | _0.045_ | **0.041** 🔻 |
+| THAF (XLM-R) + score fusion | 0.302 | 0.018 | 0.025 | 0.008 | _0.013_ | 0.014 |
+| THAF (BiomedCLIP) + score fusion | 0.327 | 0.011 | 0.120 | 0.014 | _0.041_ | 0.038 |
+
+### 关键发现
+
+- **Base 25-cls**：THAF + BiomedCLIP **+1.7pp** vs clean dev30 baseline (0.327 vs 0.310) ✅
+- **Novel zero-shot**：所有 THAF 变体**反跌**（avg 0.020-0.041 vs baseline 0.108）→ DEAD-7
+- **THAF fusion 自我归零**：trained alpha=−0.0001/−0.0003 → cross-attention 是死代码 → DEAD-6
+- **Novel 失败真因**：image encoder 端，99.2% novel 图像 top-1 落到 base class → 需要 multi-modal class encoder w/ visual prompts
+
+### 论文 §A reframe
+
+- ❌ "Trainable Hierarchical Attribute Fusion"（fusion 训练后归零，不是真创新）
+- ✅ "5-attribute structured medical prompts + BiomedCLIP encoder + mean pool"（极简，参数省 3.15M）
+
+---
+
+## Novel zero-shot 已跑实验汇总（2026-05-09，旧 dev30 ckpt）
+
+dev30 best ckpt (ep9 mAP 0.283 val 30-cls / 0.306 test_base 25-cls) × 4 splits × 4 策略：
 
 | 策略 | main_3 mAP | pseudo_2 mAP | hard_4 mAP | full_5 mAP | 状态 |
 |---|---:|---:|---:|---:|---|
