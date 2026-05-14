@@ -25,6 +25,9 @@
       "subcategory": "Negative",
       "diag_full": "PSC II Negative",
       "diag_entity": "acute neutrophilic inflammation",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "respiratory tract-Alveolar macrophages": {
@@ -38,6 +41,9 @@
       "subcategory": "Negative",
       "diag_full": "PSC II Negative",
       "diag_entity": "alveolar macrophages",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "respiratory tract-Ciliated columnar epithelial cells": {
@@ -51,6 +57,9 @@
       "subcategory": "Negative",
       "diag_full": "PSC II Negative",
       "diag_entity": "benign bronchial epithelium",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "respiratory tract-Lymphocyte": {
@@ -64,6 +73,9 @@
       "subcategory": "Negative",
       "diag_full": "PSC II Negative",
       "diag_entity": "benign lymphoid cells",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "respiratory tract-Impurity": {
@@ -77,6 +89,9 @@
       "subcategory": "Nondiagnostic",
       "diag_full": "PSC I Nondiagnostic",
       "diag_entity": "contaminant or artifact",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 1,
       "split": "base30"
     },
     "respiratory tract-Squamous epithelial cells": {
@@ -90,6 +105,9 @@
       "subcategory": "Negative",
       "diag_full": "PSC II Negative",
       "diag_entity": "benign squamous epithelium",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "respiratory tract-Diseased cells": {
@@ -103,6 +121,9 @@
       "subcategory": "Atypical",
       "diag_full": "PSC III Atypical",
       "diag_entity": "reactive/indeterminate epithelial atypia",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 3,
       "split": "base30"
     },
     "Serous effusion-Negative samples": {
@@ -116,6 +137,9 @@
       "subcategory": "NFM",
       "diag_full": "TIS II NFM",
       "diag_entity": "negative for malignancy",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "Serous effusion-Diseased cells": {
@@ -129,6 +153,9 @@
       "subcategory": "AUS",
       "diag_full": "TIS III AUS",
       "diag_entity": "atypia of undetermined significance",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 3,
       "split": "base30"
     },
     "Thyroid gland-PTC": {
@@ -142,6 +169,9 @@
       "subcategory": "Malignant",
       "diag_full": "Bethesda VI Malignant",
       "diag_entity": "papillary thyroid carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 6,
       "split": "base30"
     },
     "Thyroid gland-SPTC": {
@@ -155,6 +185,9 @@
       "subcategory": "Suspicious for malignancy",
       "diag_full": "Bethesda V Suspicious for malignancy",
       "diag_entity": "suspicious PTC",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 5,
       "split": "base30"
     },
     "Thyroid gland-NS": {
@@ -168,6 +201,9 @@
       "subcategory": "Nondiagnostic",
       "diag_full": "Bethesda I Nondiagnostic",
       "diag_entity": "scant follicular cells",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 1,
       "split": "base30"
     },
     "Thyroid gland-Macrophages": {
@@ -181,6 +217,9 @@
       "subcategory": "Nondiagnostic",
       "diag_full": "Bethesda I Nondiagnostic",
       "diag_entity": "cyst fluid only",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 1,
       "split": "base30"
     },
     "Thyroid gland-AUC": {
@@ -194,6 +233,9 @@
       "subcategory": "AUS",
       "diag_full": "Bethesda III AUS",
       "diag_entity": "atypia of undetermined significance",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 3,
       "split": "base30"
     },
     "Thyroid gland-Negative samples": {
@@ -207,6 +249,9 @@
       "subcategory": "Benign",
       "diag_full": "Bethesda II Benign",
       "diag_entity": "follicular nodular disease",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "Thyroid gland-FC": {
@@ -220,6 +265,9 @@
       "subcategory": "Benign",
       "diag_full": "Bethesda II Benign",
       "diag_entity": "follicular epithelial cells",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "Urine-NHGUC": {
@@ -233,6 +281,9 @@
       "subcategory": "NHGUC",
       "diag_full": "Paris II NHGUC",
       "diag_entity": "negative for high-grade urothelial carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "Urine-SHGUC": {
@@ -246,6 +297,9 @@
       "subcategory": "SHGUC",
       "diag_full": "Paris IV SHGUC",
       "diag_entity": "suspicious for high-grade urothelial carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 4,
       "split": "base30"
     },
     "Urine-AUC": {
@@ -259,6 +313,9 @@
       "subcategory": "AUC",
       "diag_full": "Paris III AUC",
       "diag_entity": "atypical urothelial cells",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 3,
       "split": "base30"
     },
     "Urine-HGUC": {
@@ -272,6 +329,9 @@
       "subcategory": "HGUC",
       "diag_full": "Paris V HGUC",
       "diag_entity": "high-grade urothelial carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 5,
       "split": "base30"
     },
     "TCT_CCD-normal": {
@@ -285,6 +345,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda NILM: negative for intraepithelial lesion or malignancy",
+      "axis": "squamous",
+      "axis_id": 0,
+      "rank_along_axis": 0,
       "split": "base30"
     },
     "TCT_CCD-ascus": {
@@ -298,6 +361,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda ASC-US: atypical squamous cells, undetermined significance",
+      "axis": "squamous",
+      "axis_id": 0,
+      "rank_along_axis": 1,
       "split": "base30"
     },
     "TCT_CCD-asch": {
@@ -311,6 +377,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda ASC-H: atypical squamous cells, cannot exclude HSIL",
+      "axis": "squamous",
+      "axis_id": 0,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "TCT_CCD-lsil": {
@@ -324,6 +393,9 @@
       "subcategory": "low",
       "diag_full": "Bethesda LSIL low",
       "diag_entity": "grade squamous intraepithelial lesion",
+      "axis": "squamous",
+      "axis_id": 0,
+      "rank_along_axis": 3,
       "split": "base30"
     },
     "TCT_CCD-hsil_scc_omn": {
@@ -337,6 +409,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda HSIL/SCC: high-grade SIL or squamous carcinoma",
+      "axis": "squamous",
+      "axis_id": 0,
+      "rank_along_axis": 4,
       "split": "base30"
     },
     "TCT_CCD-agc_adenocarcinoma_em": {
@@ -350,6 +425,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda AGC/AIS: atypical glandular cells or adenocarcinoma",
+      "axis": "glandular",
+      "axis_id": 1,
+      "rank_along_axis": 0,
       "split": "base30"
     },
     "TCT_CCD-vaginalis": {
@@ -363,6 +441,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda NILM: Trichomonas vaginalis organism present",
+      "axis": "infection",
+      "axis_id": 2,
+      "rank_along_axis": 0,
       "split": "base30"
     },
     "TCT_CCD-monilia": {
@@ -376,6 +457,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda NILM: fungal organisms consistent with Candida",
+      "axis": "infection",
+      "axis_id": 2,
+      "rank_along_axis": 1,
       "split": "base30"
     },
     "TCT_CCD-dysbacteriosis_herpes_act": {
@@ -389,6 +473,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda NILM: bacterial vaginosis, HSV, or Actinomyces",
+      "axis": "infection",
+      "axis_id": 2,
+      "rank_along_axis": 2,
       "split": "base30"
     },
     "TCT_CCD-ec": {
@@ -402,6 +489,9 @@
       "subcategory": null,
       "diag_full": null,
       "diag_entity": "Bethesda NILM: benign endocervical component present",
+      "axis": "adequacy",
+      "axis_id": 3,
+      "rank_along_axis": 0,
       "split": "base30"
     },
     "respiratory tract-Squamous cell carcinoma": {
@@ -415,6 +505,9 @@
       "subcategory": "Malignant",
       "diag_full": "PSC VI Malignant",
       "diag_entity": "squamous cell carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 6,
       "split": "novel_main_3"
     },
     "Serous effusion-Breast cancer": {
@@ -428,6 +521,9 @@
       "subcategory": "MAL",
       "diag_full": "TIS V MAL",
       "diag_entity": "S — metastatic breast ductal carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 5,
       "split": "novel_main_3"
     },
     "Thyroid gland-MTC": {
@@ -441,6 +537,9 @@
       "subcategory": "Malignant",
       "diag_full": "Bethesda VI Malignant",
       "diag_entity": "medullary thyroid carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 6,
       "split": "novel_main_3"
     },
     "respiratory tract-adenocarcinoma": {
@@ -454,6 +553,9 @@
       "subcategory": "Malignant",
       "diag_full": "PSC VI Malignant",
       "diag_entity": "pulmonary adenocarcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 6,
       "split": "novel_pseudo_2"
     },
     "Serous effusion-Ovarian cancer": {
@@ -467,6 +569,9 @@
       "subcategory": "MAL",
       "diag_full": "TIS V MAL",
       "diag_entity": "S — metastatic high-grade serous carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 5,
       "split": "novel_pseudo_2"
     },
     "respiratory tract-Small cell carcinoma": {
@@ -480,6 +585,9 @@
       "subcategory": "Malignant",
       "diag_full": "PSC VI Malignant",
       "diag_entity": "small cell carcinoma",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 6,
       "split": "novel_hard_4"
     },
     "Serous effusion-adenocarcinoma": {
@@ -493,6 +601,9 @@
       "subcategory": "MAL",
       "diag_full": "TIS V MAL",
       "diag_entity": "S — metastatic adenocarcinoma NOS",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 5,
       "split": "novel_hard_4"
     },
     "Thyroid gland-Suspicious for Malignancy": {
@@ -506,6 +617,9 @@
       "subcategory": "Suspicious for malignancy",
       "diag_full": "Bethesda V Suspicious for malignancy",
       "diag_entity": "indeterminate malignant features",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 5,
       "split": "novel_hard_4"
     },
     "Thyroid gland-Malignant tumour": {
@@ -519,6 +633,9 @@
       "subcategory": "Malignant",
       "diag_full": "Bethesda VI Malignant",
       "diag_entity": "thyroid malignant tumor",
+      "axis": "primary",
+      "axis_id": 0,
+      "rank_along_axis": 6,
       "split": "novel_hard_4"
     }
   },

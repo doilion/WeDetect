@@ -17,11 +17,21 @@ class YOLOWorldDetector(YOLODetector):
                  mm_neck: bool = False,
                  num_train_classes=80,
                  num_test_classes=80,
+                 ordinal_loss=None,
                  **kwargs) -> None:
         self.mm_neck = mm_neck
         self.num_train_classes = num_train_classes
         self.num_test_classes = num_test_classes
         super().__init__(*args, **kwargs)
+        # OC-HMTA Module 2: optional within-organ ordinal aux loss.
+        # Config: ordinal_loss=dict(type='OrganOrdinalLoss', ...).
+        # Detector reads adapted text emb from extract_feat output and feeds
+        # to ordinal_loss inside loss(). None = M1 / row 3 / row 3.5 path.
+        if ordinal_loss is not None:
+            from mmdet.registry import MODELS
+            self.ordinal_loss = MODELS.build(ordinal_loss)
+        else:
+            self.ordinal_loss = None
 
     def loss(self, batch_inputs: Tensor,
              batch_data_samples: SampleList) -> Union[dict, list]:
@@ -30,6 +40,25 @@ class YOLOWorldDetector(YOLODetector):
         img_feats, txt_feats = self.extract_feat(batch_inputs,
                                                  batch_data_samples)
         losses = self.bbox_head.loss(img_feats, txt_feats, batch_data_samples)
+
+        # OC-HMTA Module 2: pull auxiliary losses from text-side adapter.
+        # PseudoMultiAttrLanguageBackbone exposes get_aux_losses() (anti-
+        # collapse regularizers) and via self.ordinal_loss exposes the
+        # within-organ ordinal aux. Both keyed independently in the loss dict.
+        text_model = self.backbone.text_model
+        adapter = getattr(text_model, 'adapter', None)
+        if adapter is not None and hasattr(adapter, 'get_aux_losses'):
+            losses.update(adapter.get_aux_losses())
+        if hasattr(self, 'ordinal_loss') and self.ordinal_loss is not None:
+            adapted_emb = txt_feats  # [B, C, D] post-adapter
+            ord_losses = self.ordinal_loss(
+                adapted_emb,
+                text_model.class_organ_ids,
+                text_model.class_axis_ids,
+                text_model.class_ranks,
+            )
+            losses.update(ord_losses)
+
         return losses
 
     def predict(self,

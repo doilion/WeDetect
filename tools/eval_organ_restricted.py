@@ -66,7 +66,12 @@ def parse() -> argparse.Namespace:
     p.add_argument('--text-json', default=None,
                    help='novel class prompts JSON; omit for base eval (uses cfg default)')
     p.add_argument('--text-emb', default=None,
-                   help='novel class emb cache .pth; omit for base eval (uses cfg default)')
+                   help='novel class emb cache .pth; omit for base eval (uses cfg default).'
+                        ' Only used when --class-metadata is not set (PseudoLanguageBackbone path).')
+    p.add_argument('--class-metadata', default=None,
+                   help='Module 2 novel class_metadata .pt (overrides cfg text_model.'
+                        'class_metadata_path). When set, the adapter weights are loaded '
+                        'from --checkpoint and class metadata is swapped for novel.')
     p.add_argument('--mask-file', required=True,
                    help='class×organ mask .pt produced by tools/build_class_organ_mask.py')
     p.add_argument('--taxonomy', default='data/texts/tct_ngc_taxonomy.json',
@@ -141,8 +146,14 @@ def main():
             'fusion weights. For organ-restricted THAF eval, write a sibling '
             'entry that preserves the THAF backbone (cf. eval_novel_thaf.py).')
 
-    # 1) Swap text_model emb cache (novel path) — base path: keep config as-is.
-    if args.text_emb is not None:
+    # 1) Swap text_model for novel eval.
+    #    - --class-metadata path: M2 multi-attr backbone (preserves adapter).
+    #      We override class_metadata_path; adapter weights stay from ckpt.
+    #    - --text-emb path: M1 single-prompt backbone (PseudoLanguageBackbone).
+    if args.class_metadata is not None:
+        cfg.model.backbone.text_model.class_metadata_path = args.class_metadata
+        cfg.model.num_test_classes = n_classes
+    elif args.text_emb is not None:
         cfg.model.backbone.text_model = dict(
             type='PseudoLanguageBackbone',
             text_embed_path=args.text_emb,

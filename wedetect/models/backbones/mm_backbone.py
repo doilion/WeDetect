@@ -607,6 +607,89 @@ class PseudoLanguageBackbone(BaseModule):
 
 
 @MODELS.register_module()
+class PseudoMultiAttrLanguageBackbone(BaseModule):
+    """OC-HMTA Module 2 text backbone: 5-attribute cache + hierarchical adapter.
+
+    Replaces the 1-PSC PseudoLanguageBackbone for Module 2 training/eval.
+    Looks up 5 attribute embeddings per class from a prompt-keyed cache,
+    builds [B, C, A, D], and passes through HierarchicalTextAdapter (Stage
+    1 attention pool + Stage 2 organ MoE + Stage 3 rank embedding) to produce
+    final [B, C, D] for the head.
+
+    Class metadata (organ_id, axis_id, rank_along_axis) is loaded from a
+    .pt file built by tools/build_class_metadata_tensor.py.
+
+    Args:
+        class_metadata_path: .pt with {'class_names', 'class_ids',
+            'organ_ids', 'axis_ids', 'rank_along_axis', 'system_ids',
+            'attr_emb' [C, A, D]} all in cat_id order.
+        adapter: HierarchicalTextAdapter config dict (or None for mean pool).
+    """
+
+    def __init__(
+        self,
+        class_metadata_path: str,
+        adapter: OptMultiConfig = None,
+        init_cfg: OptMultiConfig = None,
+    ):
+        super().__init__(init_cfg)
+        meta = torch.load(class_metadata_path, weights_only=False, map_location='cpu')
+        self.class_names = list(meta['class_names'])
+        self.num_classes = len(self.class_names)
+        self.num_attrs = meta['attr_emb'].shape[1]
+        self.embed_dim = meta['attr_emb'].shape[-1]
+
+        # Register as non-persistent buffers so they move with .cuda() / DDP
+        # but don't bloat state_dict (class metadata is reproducible from cfg).
+        self.register_buffer('attr_emb', meta['attr_emb'].float(),
+                             persistent=False)              # [C, A, D]
+        self.register_buffer('class_organ_ids',
+                             meta['organ_ids'].long(), persistent=False)
+        self.register_buffer('class_axis_ids',
+                             meta['axis_ids'].long(), persistent=False)
+        self.register_buffer('class_ranks',
+                             meta['rank_along_axis'].long(), persistent=False)
+        self.register_buffer('class_system_ids',
+                             meta['system_ids'].long(), persistent=False)
+
+        if adapter is not None:
+            self.adapter = MODELS.build(adapter)
+        else:
+            self.adapter = None
+
+        # Dummy buff to anchor device (compat with PseudoLanguageBackbone)
+        self.register_buffer('buff', torch.zeros(1), persistent=False)
+
+    def forward(self, text):
+        """Return adapted class embeddings [B, C, D].
+
+        Ignores `text` content — backbone broadcasts the stored class metadata
+        to every batch item (consistent with PseudoLanguageBackbone behavior
+        under LoadText, which feeds the same class set to all samples).
+
+        Note: callers using sample-level class subset sampling (RandomLoadText)
+        would need a different lookup mechanism; not supported here.
+        """
+        B = len(text) if isinstance(text, (list, tuple)) else 1
+        attr_emb = self.attr_emb.unsqueeze(0).expand(B, -1, -1, -1)  # [B, C, A, D]
+
+        if self.adapter is None:
+            # Mean pool fallback (row 3.5 equivalent if used)
+            return attr_emb.mean(dim=2)
+
+        emb_final = self.adapter(
+            attr_emb,
+            self.class_organ_ids,
+            self.class_axis_ids,
+            self.class_ranks,
+        )                                                   # [B, C, D]
+        return emb_final
+
+    def forward_text(self, text):
+        return self.forward(text)
+
+
+@MODELS.register_module()
 class MultiModalYOLOBackbone(BaseModule):
 
     def __init__(

@@ -100,6 +100,28 @@ DIAG_PATTERNS = [
 ROMAN_TO_INT = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8}
 
 
+# Cervical Bethesda is multi-axis (squamous lesion ladder, glandular lesion
+# ladder, infection findings, adequacy markers). Single 1D rank would conflate
+# semantically distinct entities. Explicit (axis, rank_along_axis) mapping.
+# axis_id assignment: squamous=0, glandular=1, infection=2, adequacy=3.
+CERVICAL_AXIS_MAP = {
+    "TCT_CCD-normal":                    ("squamous",  0),  # II NILM
+    "TCT_CCD-ascus":                     ("squamous",  1),  # III ASC-US
+    "TCT_CCD-asch":                      ("squamous",  2),  # III ASC-H (slightly higher concern)
+    "TCT_CCD-lsil":                      ("squamous",  3),  # IV LSIL
+    "TCT_CCD-hsil_scc_omn":              ("squamous",  4),  # V HSIL / SCC / Other malignancies
+    "TCT_CCD-agc_adenocarcinoma_em":     ("glandular", 0),  # AGC / Adenocarcinoma endometrial
+    "TCT_CCD-vaginalis":                 ("infection", 0),  # Trichomonas
+    "TCT_CCD-monilia":                   ("infection", 1),  # Candida
+    "TCT_CCD-dysbacteriosis_herpes_act": ("infection", 2),  # mixed flora / HSV / actinomyces
+    "TCT_CCD-ec":                        ("adequacy",  0),  # Endocervical cells present
+}
+CERVICAL_AXIS_TO_ID = {"squamous": 0, "glandular": 1, "infection": 2, "adequacy": 3}
+# For non-cervical organs, only a single primary diagnostic axis exists.
+PRIMARY_AXIS = "primary"
+PRIMARY_AXIS_ID = 0
+
+
 def parse_diagnostic_code(diag_str: str) -> Dict:
     """Parse diag_code attribute string into structured fields.
 
@@ -208,12 +230,29 @@ def main() -> None:
         diag = parse_diagnostic_code(diag_str)
         if not diag["parsed"]:
             parse_failed.append((cls_name, diag_str))
+
+        # Module 2 ordinal axis assignment:
+        # - Cervical (TCT_CCD) has explicit 4-axis structure (squamous/glandular/
+        #   infection/adequacy) — see CERVICAL_AXIS_MAP.
+        # - Other organs have a single 'primary' diagnostic ladder, with
+        #   rank_along_axis = parsed category_idx (II=2, VI=6, ...).
+        if cls_name in CERVICAL_AXIS_MAP:
+            axis, rank_along_axis = CERVICAL_AXIS_MAP[cls_name]
+            axis_id = CERVICAL_AXIS_TO_ID[axis]
+        else:
+            axis = PRIMARY_AXIS
+            axis_id = PRIMARY_AXIS_ID
+            rank_along_axis = diag["category_idx"]  # -1 if parse failed
+
         classes[cls_name] = {
             "class_id": cls_id,
             "organ": organ,
             "organ_id": ORGAN_TO_ID[organ],
             "diag_raw": diag_str,
             **{k: v for k, v in diag.items() if k != "parsed"},
+            "axis": axis,
+            "axis_id": axis_id,
+            "rank_along_axis": rank_along_axis,
             "split": "base30",
         }
 
@@ -248,12 +287,24 @@ def main() -> None:
             diag = parse_diagnostic_code(diag_str)
             if not diag["parsed"]:
                 parse_failed.append((cls_name, diag_str))
+
+            if cls_name in CERVICAL_AXIS_MAP:
+                axis, rank_along_axis = CERVICAL_AXIS_MAP[cls_name]
+                axis_id = CERVICAL_AXIS_TO_ID[axis]
+            else:
+                axis = PRIMARY_AXIS
+                axis_id = PRIMARY_AXIS_ID
+                rank_along_axis = diag["category_idx"]
+
             classes[cls_name] = {
                 "class_id": cls_id,
                 "organ": organ,
                 "organ_id": ORGAN_TO_ID[organ],
                 "diag_raw": diag_str,
                 **{k: v for k, v in diag.items() if k != "parsed"},
+                "axis": axis,
+                "axis_id": axis_id,
+                "rank_along_axis": rank_along_axis,
                 "split": f"novel_{split_name}",
             }
 
