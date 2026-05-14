@@ -112,4 +112,33 @@ val_dataloader = dict(
 )
 test_dataloader = val_dataloader
 
+# Align val evaluator with paper protocol (same metric as final test eval):
+#   OrganRestrictedCocoMetric reports per-organ AP + overall macro + all-class
+#   flat + instance-weighted. Excludes 5 negative classes from COCOeval
+#   catIds for parity with test_exclude_negative.py.
+# Inference already applies organ mask (head.organ_class_mask buffer); this
+# only changes the AGGREGATION/EXCLUSION at metric time so that val mAP
+# during training is directly comparable to paper-reported test numbers.
+NEGATIVE_CLASS_NAMES = [
+    "respiratory tract-Impurity",
+    "Serous effusion-Negative samples",
+    "Thyroid gland-Negative samples",
+    "Urine-NHGUC",
+    "TCT_CCD-normal",
+]
+# Inherited paths from base config chain. Re-state explicitly because mmengine
+# config does not resolve {{_base_.}} substitution in nested dict values.
+_data_root = "/home1/liwenjie/TCT_NGC_640/"
+_val_ann_file = "annotations/instances_val_dev_disjoint_dev30.json"
+val_evaluator = dict(
+    _delete_=True,
+    type="OrganRestrictedCocoMetric",
+    ann_file=_data_root + _val_ann_file,
+    metric="bbox",
+    classwise=False,
+    organ_mask_path=organ_mask_path,
+    exclude_class_names=NEGATIVE_CLASS_NAMES,
+)
+test_evaluator = val_evaluator
+
 work_dir = "./work_dirs/wedetect_tiny_tct_ngc_dev30_ochmta_m1_biomedclip_2gpu"
