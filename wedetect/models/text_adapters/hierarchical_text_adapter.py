@@ -66,6 +66,26 @@ class HierarchicalTextAdapter(BaseModule):
         lambda_gate_entropy: float = 0.02,
         lambda_rank_norm: float = 0.01,
         rank_norm_eps: float = 0.05,    # rank_emb norm should stay > this
+        # Row 5: (organ, axis)-conditional structure loss.
+        # Same (organ, axis) pairs are pulled together (cos >= axis_attract_target),
+        # cross-organ pairs are pushed apart (cos <= cross_organ_repel_target),
+        # same-organ cross-axis pairs are left neutral (no penalty). This avoids
+        # the M2 trade-off where Stage 2 organ MoE forces cross-organ kin (e.g.,
+        # respiratory-Alveolar macrophages vs Thyroid-Macrophages) into different
+        # subspaces despite identical cytomorphology. Disabled by default
+        # (lambda=0); enable for the OCHMTA + axis 结构损失 ablation row.
+        lambda_axis_attract: float = 0.0,
+        lambda_cross_organ_repel: float = 0.0,
+        axis_attract_target: float = 0.5,     # same (organ, axis) cos floor
+        cross_organ_repel_target: float = 0.1,  # cross-organ cos ceiling
+        # Row 6c knockout flags — used to isolate which HTA stages help/hurt.
+        # bypass-experiment results (Table C) showed Stage 2 organ MoE is the
+        # main novel-zero-shot killer (+4.8pp on bypass) and Stage 3 rank emb
+        # lookup is a secondary killer (+2.3pp). These flags allow training a
+        # model from scratch with those stages disabled, to confirm whether
+        # the harm is intrinsic to the design or recoverable via training.
+        skip_stage2: bool = False,
+        skip_stage3_rank_emb: bool = False,
         init_cfg: Optional[Dict] = None,
     ):
         super().__init__(init_cfg)
@@ -78,8 +98,14 @@ class HierarchicalTextAdapter(BaseModule):
         self.lambda_gate_entropy = lambda_gate_entropy
         self.lambda_rank_norm = lambda_rank_norm
         self.rank_norm_eps = rank_norm_eps
+        self.lambda_axis_attract = lambda_axis_attract
+        self.lambda_cross_organ_repel = lambda_cross_organ_repel
+        self.axis_attract_target = axis_attract_target
+        self.cross_organ_repel_target = cross_organ_repel_target
         self.max_axes_per_organ = max_axes_per_organ
         self.max_rank_per_axis = max_rank_per_axis
+        self.skip_stage2 = skip_stage2
+        self.skip_stage3_rank_emb = skip_stage3_rank_emb
 
         # --- Stage 1: per-attribute projection ---
         # Each attribute has its own thin MLP. Independent because attributes
@@ -150,6 +176,20 @@ class HierarchicalTextAdapter(BaseModule):
         # --- Diagnostic buffers for collapse guard ---
         # Populated on every forward; consumed by hooks.
         self._diag = {}
+
+        # When skip_stage2 / skip_stage3_rank_emb are True the corresponding
+        # forward path is bypassed but the nn.Parameters still live on the
+        # module and are tracked by DDP's `find_unused_parameters=True` (which
+        # scans every backward at O(#params) cost) and allreduced (a wasted
+        # buffer). Freezing them removes them from autograd + DDP traffic so
+        # iter time matches the equivalent slim model.
+        if self.skip_stage2:
+            for p in self.organ_experts.parameters():
+                p.requires_grad = False
+            for p in self.gate_W.parameters():
+                p.requires_grad = False
+        if self.skip_stage3_rank_emb:
+            self.rank_emb.requires_grad = False
 
     def _stage1_attribute(self, emb_attr: torch.Tensor) -> torch.Tensor:
         """Apply per-attribute projection + content-aware attention pool.
@@ -291,10 +331,36 @@ class HierarchicalTextAdapter(BaseModule):
             emb_final: [B, C, D]
         """
         emb_pooled = self._stage1_attribute(emb_attr)
-        emb_organ = self._stage2_organ(emb_pooled, class_organ_ids)
-        emb_final = self._stage3_rank(
-            emb_organ, class_organ_ids, class_axis_ids, class_ranks
-        )
+        if self.skip_stage2:
+            # Bypass Stage 2 organ MoE entirely (Row 6c). Stage 1 output flows
+            # directly into Stage 3 (or directly out if Stage 3 is also skipped).
+            # get_aux_losses() gates on `not self.skip_stage2 and 'stage2_gate'
+            # in self._diag`, so no _diag write is needed here.
+            emb_organ = emb_pooled
+        else:
+            emb_organ = self._stage2_organ(emb_pooled, class_organ_ids)
+        if self.skip_stage3_rank_emb:
+            # Bypass Stage 3 rank embedding lookup (Row 6c). The class vector
+            # does not get a per-(organ,axis,rank) additive vector — protects
+            # novel classes from the noise-init rank embedding for unseen
+            # ranks. ord_loss can still operate on emb_organ directly.
+            # get_aux_losses() gates on `not self.skip_stage3_rank_emb and
+            # 'stage3_rank_emb_lookup' in self._diag`, so no _diag write
+            # is needed here.
+            emb_final = emb_organ
+        else:
+            emb_final = self._stage3_rank(
+                emb_organ, class_organ_ids, class_axis_ids, class_ranks
+            )
+        # Stash live emb_final + class metadata for the (organ, axis)-cond
+        # structure loss in get_aux_losses(). Only populated when the Row 5
+        # losses are actually enabled — otherwise these tensors are unused
+        # per-iter overhead. Mean over batch dim (all batch items share the
+        # same C class vectors under our broadcast text setup).
+        if self.lambda_axis_attract > 0 or self.lambda_cross_organ_repel > 0:
+            self._diag['final_emb_mean'] = emb_final.mean(dim=0)    # [C, D] live
+            self._diag['class_organ_ids'] = class_organ_ids          # [C] long
+            self._diag['class_axis_ids'] = class_axis_ids            # [C] long
         return emb_final
 
     def get_aux_losses(self) -> Dict[str, torch.Tensor]:
@@ -333,20 +399,58 @@ class HierarchicalTextAdapter(BaseModule):
         losses['loss_proj_drift'] = self.lambda_proj_drift * drift_penalty
 
         # Stage 2 gate entropy: penalize uniform gate (= single big MLP).
-        gate = self._diag['stage2_gate']                   # [B, C, O] live
-        entropy_gate = -(gate * (gate.clamp(min=1e-9).log())).sum(dim=-1)
-        losses['loss_gate_entropy'] = (
-            self.lambda_gate_entropy * entropy_gate.mean()
-        )
+        # Skip when Stage 2 is disabled (skip_stage2=True): no gate to regularize.
+        if not self.skip_stage2 and 'stage2_gate' in self._diag:
+            gate = self._diag['stage2_gate']                   # [B, C, O] live
+            entropy_gate = -(gate * (gate.clamp(min=1e-9).log())).sum(dim=-1)
+            losses['loss_gate_entropy'] = (
+                self.lambda_gate_entropy * entropy_gate.mean()
+            )
 
         # Stage 3 rank norm: penalize rank_emb learning -> 0 vector.
-        rank_emb_lookup = self._diag['stage3_rank_emb_lookup']   # [C, D] live
-        valid_mask = self._diag['stage3_rank_valid_mask']        # [C] bool
-        if valid_mask.any():
-            active_norms = rank_emb_lookup[valid_mask].norm(dim=-1)  # [n_valid]
-            min_norm = active_norms.min()
-            penalty = F.relu(self.rank_norm_eps - min_norm).pow(2)
-            losses['loss_rank_norm'] = self.lambda_rank_norm * penalty
+        # Skip when Stage 3 rank emb is disabled: there's no rank embedding
+        # lookup to regularize.
+        if not self.skip_stage3_rank_emb and 'stage3_rank_emb_lookup' in self._diag:
+            rank_emb_lookup = self._diag['stage3_rank_emb_lookup']   # [C, D] live
+            valid_mask = self._diag['stage3_rank_valid_mask']        # [C] bool
+            if valid_mask.any():
+                active_norms = rank_emb_lookup[valid_mask].norm(dim=-1)  # [n_valid]
+                min_norm = active_norms.min()
+                penalty = F.relu(self.rank_norm_eps - min_norm).pow(2)
+                losses['loss_rank_norm'] = self.lambda_rank_norm * penalty
+
+        # Row 5: (organ, axis)-conditional structure loss
+        if (self.lambda_axis_attract > 0 or self.lambda_cross_organ_repel > 0) \
+                and 'final_emb_mean' in self._diag:
+            emb = F.normalize(self._diag['final_emb_mean'], dim=-1)  # [C, D]
+            organ_ids = self._diag['class_organ_ids']                # [C]
+            axis_ids = self._diag['class_axis_ids']                  # [C]
+            C = emb.shape[0]
+            cos = emb @ emb.T                                         # [C, C]
+            # Mask out diagonal and lower triangle (use each pair once).
+            triu = torch.triu(
+                torch.ones(C, C, dtype=torch.bool, device=emb.device), diagonal=1
+            )
+            same_organ = (organ_ids.unsqueeze(0) == organ_ids.unsqueeze(1))
+            same_axis = (axis_ids.unsqueeze(0) == axis_ids.unsqueeze(1))
+            # (a) Attract: same (organ, axis) pairs cos should be >= target
+            attract_mask = triu & same_organ & same_axis
+            if self.lambda_axis_attract > 0 and attract_mask.any():
+                attract_pairs = cos[attract_mask]
+                attract_loss = F.relu(
+                    self.axis_attract_target - attract_pairs
+                ).pow(2).mean()
+                losses['loss_axis_attract'] = self.lambda_axis_attract * attract_loss
+            # (b) Repel: cross-organ pairs cos should be <= target
+            repel_mask = triu & (~same_organ)
+            if self.lambda_cross_organ_repel > 0 and repel_mask.any():
+                repel_pairs = cos[repel_mask]
+                repel_loss = F.relu(
+                    repel_pairs - self.cross_organ_repel_target
+                ).pow(2).mean()
+                losses['loss_cross_organ_repel'] = self.lambda_cross_organ_repel * repel_loss
+            # (c) Same-organ cross-axis: neutral, no loss (preserves cross-organ-kin
+            # like Thyroid-Macrophages ↔ Thyroid-PTC at adapter's discretion).
 
         return losses
 

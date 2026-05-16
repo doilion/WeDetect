@@ -87,6 +87,13 @@ def parse() -> argparse.Namespace:
                    help='skip head.organ_class_mask attachment (eval same ann but '
                         'with 30/9 unrestricted class scoring) — produces row 1 '
                         'numbers under the same per-organ AP breakdown.')
+    p.add_argument('--bypass-stages', default=None,
+                   help='OC-HMTA Module 2 inference-time bypass. Comma-sep list '
+                        'from {stage1,stage2,stage3}. Forces uniform attention '
+                        '(stage1) / uniform organ MoE gate (stage2) / zero rank '
+                        'embedding (stage3) on the loaded ckpt. Used to test '
+                        'whether the trained-on-base adapter is over-specialized '
+                        'for novel zero-shot.')
     return p.parse_args()
 
 
@@ -99,6 +106,59 @@ def derive_metainfo(abs_ann: Path) -> tuple[tuple[str, ...], int]:
     data = json.loads(abs_ann.read_text())
     cats = sorted(data['categories'], key=lambda c: c['id'])
     return tuple(c['name'] for c in cats), len(cats)
+
+
+def apply_module2_bypasses(model, bypass_spec: str) -> None:
+    """Monkey-patch HierarchicalTextAdapter stages on a loaded model.
+
+    Used to test whether each Module 2 routing stage (Stage 1 content attention,
+    Stage 2 organ MoE, Stage 3 rank embedding) is the cause of novel zero-shot
+    collapse. Each bypass falls back to a uniform / neutral pathway:
+      stage1 -> uniform attention pool (mean over 5 attribute projections)
+      stage2 -> uniform MoE gate (mean over 5 organ experts)
+      stage3 -> zero rank embedding (set class_ranks buffer to -1)
+
+    The trained per-attribute projections and per-organ expert MLPs are kept;
+    only the routing softmaxes / rank lookup are neutralized.
+    """
+    import torch as _torch
+
+    backbone = getattr(model.backbone, 'text_model', None)
+    adapter = getattr(backbone, 'adapter', None) if backbone is not None else None
+    if adapter is None:
+        raise SystemExit('--bypass-stages set but model has no adapter '
+                         '(text_model is not PseudoMultiAttrLanguageBackbone)')
+
+    stages = {s.strip() for s in bypass_spec.split(',') if s.strip()}
+    unknown = stages - {'stage1', 'stage2', 'stage3'}
+    if unknown:
+        raise SystemExit(f'unknown bypass stages: {unknown}')
+
+    if 'stage1' in stages:
+        def _uniform_stage1(emb_attr):
+            adapted = _torch.stack(
+                [adapter.attr_projs[a](emb_attr[:, :, a, :])
+                 for a in range(adapter.num_attrs)],
+                dim=2,
+            )                                                # [B, C, A, D]
+            adapter._diag = {}
+            return adapted.mean(dim=2)                       # uniform alpha
+        adapter._stage1_attribute = _uniform_stage1
+
+    if 'stage2' in stages:
+        def _uniform_stage2(emb_pooled, class_organ_ids):
+            expert_stack = _torch.stack(
+                [adapter.organ_experts[o](emb_pooled)
+                 for o in range(adapter.num_organs)],
+                dim=-2,
+            )                                                # [B, C, O, D]
+            return expert_stack.mean(dim=-2)                 # uniform gate
+        adapter._stage2_organ = _uniform_stage2
+
+    if 'stage3' in stages:
+        backbone.class_ranks.fill_(-1)                       # triggers valid_mask=0
+
+    print(f'[apply_module2_bypasses] applied: {sorted(stages)}')
 
 
 def patch_pipeline_with_organ_extractor(pipeline: list, taxonomy_path: str) -> list:
@@ -244,6 +304,9 @@ def main():
         print(f'[eval_organ_restricted] attached mask {mask_tensor.shape} to bbox_head')
     print(f'[eval_organ_restricted] ann: {abs_ann}')
     print(f'[eval_organ_restricted] classes ({n_classes}): {classes[:3]}...')
+
+    if args.bypass_stages:
+        apply_module2_bypasses(runner.model, args.bypass_stages)
 
     runner.test()
 
