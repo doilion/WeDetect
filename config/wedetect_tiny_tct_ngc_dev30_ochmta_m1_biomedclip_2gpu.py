@@ -141,4 +141,22 @@ val_evaluator = dict(
 )
 test_evaluator = val_evaluator
 
+# OrganRestrictedCocoMetric outputs `coco/overall/macro_mAP` rather than the
+# inherited `coco/bbox_mAP`. The inherited CheckpointHook key would crash at
+# the first val end (KeyError 'coco/bbox_mAP'). Override save_best to the
+# corrected metric key (paper-protocol aligned). NOTE: M1 / M1-5attr平均 /
+# M1+M2-完整方法 trained before this override existed — they used old
+# val_evaluator (CocoMetric), so their inherited save_best='coco/bbox_mAP'
+# was valid. This override only affects future trainings of M2 / Row 5
+# (axisstruct) / Row 4d-fix variants.
+default_hooks = dict(
+    checkpoint=dict(
+        type="CheckpointHook",
+        interval=1,
+        save_best="coco/overall/macro_mAP",
+        rule="greater",
+        max_keep_ckpts=-1,
+    ),
+)
+
 work_dir = "./work_dirs/wedetect_tiny_tct_ngc_dev30_ochmta_m1_biomedclip_2gpu"
