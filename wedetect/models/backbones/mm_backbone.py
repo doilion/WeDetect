@@ -1,6 +1,6 @@
 # Copyright (c) Tencent Inc. All rights reserved.
 import itertools
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 import torch
 from torch import Tensor
 from torch.nn.modules.batchnorm import _BatchNorm
@@ -630,9 +630,34 @@ class PseudoMultiAttrLanguageBackbone(BaseModule):
         self,
         class_metadata_path: str,
         adapter: OptMultiConfig = None,
+        pool_mode: Optional[str] = None,
         init_cfg: OptMultiConfig = None,
     ):
         super().__init__(init_cfg)
+        # Auto-detect pool_mode when caller doesn't set it explicitly, so M2
+        # configs that predate this flag continue to work unchanged:
+        #   adapter is None    -> 'mean'    (M1-5attr static mean-pool)
+        #   adapter is not None -> 'adapter' (M2 HierarchicalTextAdapter path)
+        # Set pool_mode='none' explicitly to feed [B, C, A, D] raw attribute
+        # embeddings to a downstream consumer (Design A ImageConditionalFusion).
+        if pool_mode is None:
+            pool_mode = 'adapter' if adapter is not None else 'mean'
+        if pool_mode not in ('mean', 'adapter', 'none'):
+            raise ValueError(
+                f"pool_mode must be 'mean' / 'adapter' / 'none', got "
+                f"{pool_mode!r}. 'mean' = static mean over 5 attrs (M1-5attr "
+                f"baseline). 'adapter' = run trainable HTA (M2). 'none' = "
+                f"return raw [B, C, A, D] without pooling (Design A "
+                f"ImageConditionalFusion path; consumer must downstream pool)."
+            )
+        if pool_mode == 'adapter' and adapter is None:
+            raise ValueError(
+                "pool_mode='adapter' requires adapter config to be set.")
+        if pool_mode != 'adapter' and adapter is not None:
+            raise ValueError(
+                f"pool_mode={pool_mode!r} expects adapter=None; got adapter "
+                f"config — adapter would never be called.")
+        self.pool_mode = pool_mode
         meta = torch.load(class_metadata_path, weights_only=False, map_location='cpu')
         self.class_names = list(meta['class_names'])
         self.num_classes = len(self.class_names)
@@ -661,11 +686,16 @@ class PseudoMultiAttrLanguageBackbone(BaseModule):
         self.register_buffer('buff', torch.zeros(1), persistent=False)
 
     def forward(self, text):
-        """Return adapted class embeddings [B, C, D].
+        """Return per-class embeddings, shape determined by pool_mode.
 
         Ignores `text` content — backbone broadcasts the stored class metadata
         to every batch item (consistent with PseudoLanguageBackbone behavior
         under LoadText, which feeds the same class set to all samples).
+
+        Returns:
+            pool_mode='mean':    [B, C, D]     mean over 5 attrs (M1-5attr平均)
+            pool_mode='adapter': [B, C, D]     trainable HTA adapter (M2)
+            pool_mode='none':    [B, C, A, D]  raw 5-attr (Design A / ICF feed)
 
         Note: callers using sample-level class subset sampling (RandomLoadText)
         would need a different lookup mechanism; not supported here.
@@ -673,16 +703,17 @@ class PseudoMultiAttrLanguageBackbone(BaseModule):
         B = len(text) if isinstance(text, (list, tuple)) else 1
         attr_emb = self.attr_emb.unsqueeze(0).expand(B, -1, -1, -1)  # [B, C, A, D]
 
-        if self.adapter is None:
-            # Mean pool fallback (row 3.5 equivalent if used)
-            return attr_emb.mean(dim=2)
-
+        if self.pool_mode == 'mean':
+            return attr_emb.mean(dim=2)                              # [B, C, D]
+        if self.pool_mode == 'none':
+            return attr_emb                                          # [B, C, A, D]
+        # pool_mode == 'adapter' (validated in __init__ to require non-None)
         emb_final = self.adapter(
             attr_emb,
             self.class_organ_ids,
             self.class_axis_ids,
             self.class_ranks,
-        )                                                   # [B, C, D]
+        )                                                            # [B, C, D]
         return emb_final
 
     def forward_text(self, text):
@@ -699,6 +730,7 @@ class MultiModalYOLOBackbone(BaseModule):
         #  visual_prompt_model : ConfigType,
         frozen_stages: int = -1,
         with_text_model: bool = True,
+        cross_modal_fusion: OptMultiConfig = None,
         init_cfg: OptMultiConfig = None,
     ) -> None:
         super().__init__(init_cfg)
@@ -709,6 +741,15 @@ class MultiModalYOLOBackbone(BaseModule):
             self.text_model = MODELS.build(text_model)
         else:
             self.text_model = None
+        # Optional image-text fusion module (Design A / ICF). When provided,
+        # it consumes (img_feats[-1], txt_feats) inside forward() after both
+        # image_model and text_model have run. The text_model must emit a
+        # 4-D tensor [B, C, A, D] (pool_mode='none') for the fusion module
+        # to be applied; otherwise the fusion is skipped (legacy path).
+        if cross_modal_fusion is not None:
+            self.cross_modal_fusion = MODELS.build(cross_modal_fusion)
+        else:
+            self.cross_modal_fusion = None
         self.frozen_stages = frozen_stages
         self._freeze_stages()
 
@@ -733,11 +774,19 @@ class MultiModalYOLOBackbone(BaseModule):
     ) -> Tuple[Tuple[Tensor], Tensor]:
         img_feats = self.image_model(image)
 
-        if self.with_text_model:
-            txt_feats = self.text_model(text)
-            return img_feats, txt_feats
-        else:
+        if not self.with_text_model:
             return img_feats, None
+
+        txt_feats = self.text_model(text)
+        # Image-conditional fusion (Design A / ICF). Only fires when the
+        # text_model emits a 4-D tensor [B, C, A, D] (pool_mode='none' in
+        # PseudoMultiAttrLanguageBackbone) AND a fusion module is configured.
+        # The fusion module consumes the deepest backbone feature
+        # (img_feats[-1], typically ConvNext stage 4 = 768d, stride 32) plus
+        # the raw 5-attr text emb, and returns [B, C, D] for the head.
+        if self.cross_modal_fusion is not None and txt_feats.dim() == 4:
+            txt_feats = self.cross_modal_fusion(img_feats[-1], txt_feats)
+        return img_feats, txt_feats
 
     def forward_text(self, text: List[List[str]]) -> Tensor:
         assert self.with_text_model, "forward_text() requires a text model"
