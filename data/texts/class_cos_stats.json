@@ -1,0 +1,35 @@
+{
+  "Row 3 (1-PSC)": {
+    "within_organ_mean": 0.8052460551261902,
+    "within_organ_max": 0.9675713777542114,
+    "within_organ_min": 0.5615454912185669,
+    "cross_organ_mean": 0.7234594821929932,
+    "cross_organ_max": 0.9324955940246582,
+    "cross_organ_min": 0.4783588945865631,
+    "separation_gap": 0.08178657293319702,
+    "n_within_pairs": 94,
+    "n_cross_pairs": 341
+  },
+  "Row 3.5 (5-attr-mean)": {
+    "within_organ_mean": 0.8765329122543335,
+    "within_organ_max": 0.9666482210159302,
+    "within_organ_min": 0.7329744696617126,
+    "cross_organ_mean": 0.8250635862350464,
+    "cross_organ_max": 0.9198896288871765,
+    "cross_organ_min": 0.6832737922668457,
+    "separation_gap": 0.05146932601928711,
+    "n_within_pairs": 94,
+    "n_cross_pairs": 341
+  },
+  "Row 4d (M2 adapted)": {
+    "within_organ_mean": 0.32242637872695923,
+    "within_organ_max": 0.7881301641464233,
+    "within_organ_min": -0.2824886441230774,
+    "cross_organ_mean": 0.24768516421318054,
+    "cross_organ_max": 0.8209882974624634,
+    "cross_organ_min": -0.07819905132055283,
+    "separation_gap": 0.07474121451377869,
+    "n_within_pairs": 94,
+    "n_cross_pairs": 341
+  }
+}
